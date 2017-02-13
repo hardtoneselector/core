@@ -15,6 +15,7 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\NotBlank;
+use Zikula\Common\Translator\IdentityTranslator;
 use Zikula\MenuModule\Form\DataTransformer\KeyValueTransformer;
 use Zikula\MenuModule\Form\EventListener\KeyValueFixerListener;
 use Zikula\MenuModule\Form\EventListener\OptionValidatorListener;
@@ -28,6 +29,7 @@ class MenuItemType extends AbstractType
     {
         $builder
             ->add('title', 'Symfony\Component\Form\Extension\Core\Type\TextType', [
+                'label' => $options['translator']->__('Title'),
                 'constraints' => [new NotBlank()]
             ])
             ->add('options', 'Symfony\Component\Form\Extension\Core\Type\CollectionType', [
@@ -91,7 +93,7 @@ class MenuItemType extends AbstractType
     public function configureOptions(OptionsResolver $resolver)
     {
         $resolver->setDefaults([
-            'translator' => null,
+            'translator' => new IdentityTranslator(),
             'includeRoot' => false,
             'includeParent' => false,
             'data_class' => 'Zikula\MenuModule\Entity\MenuItemEntity',
