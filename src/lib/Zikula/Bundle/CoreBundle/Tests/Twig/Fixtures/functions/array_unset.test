@@ -1,0 +1,16 @@
+--TEST--
+"array_unset" basic test
+--TEMPLATE--
+{% set foo = array_unset(foo, 'two') %}
+{{ dump(foo) }}
+--DATA--
+return array('foo' => array('one' => 'a', 'two' => 'b', 'three' => 'c'))
+--CONFIG--
+return array('debug' => true, 'autoescape' => false);
+--EXPECT--
+array(2) {
+  ["one"]=>
+  string(1) "a"
+  ["three"]=>
+  string(1) "c"
+}

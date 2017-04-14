@@ -1,0 +1,9 @@
+--TEST--
+"callFunc" basic test
+--TEMPLATE--
+{{ callFunc(['Zikula\Bundle\CoreBundle\Tests\Twig\Fixtures\FooClass', 'Bar'], {a: 5}) }}
+--DATA--
+$f = new Zikula\Bundle\CoreBundle\Tests\Twig\Fixtures\FooClass();
+return array('f' => $f)
+--EXPECT--
+10

@@ -113,11 +113,13 @@ class CoreExtension extends \Twig_Extension
 
     /**
      * @param string $code
+     * @param null $region
+     * @param null $displayLocale
      * @return string
      */
-    public function languageName($code)
+    public function languageName($code, $region = null, $displayLocale = null)
     {
-        return Intl::getLanguageBundle()->getLanguageName($code);
+        return Intl::getLanguageBundle()->getLanguageName($code, $region, $displayLocale);
     }
 
     /**
@@ -188,9 +190,9 @@ class CoreExtension extends \Twig_Extension
      * @param array $params
      * @return mixed
      */
-    public function callFunc(callable $callable, array $params = [])
+    public function callFunc($callable, array $params = [])
     {
-        if (function_exists($callable)) {
+        if (is_callable() && function_exists($callable)) {
             return call_user_func_array($callable, $params);
         }
         throw new \InvalidArgumentException($this->translator->__('Function does not exist or is not callable.'));

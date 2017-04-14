@@ -18,7 +18,6 @@
         <testsuite name="CoreBundle Test Suite">
             <directory>./Tests/</directory>
             <exclude>./Tests/Twig/Node/SwitchNodeTest.php</exclude>
-            <exclude>./Tests/Twig/IntegrationTest.php</exclude>
         </testsuite>
     </testsuites>
 </phpunit>

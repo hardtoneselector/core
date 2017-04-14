@@ -1,0 +1,17 @@
+--TEST--
+"languageName" basic test
+--TEMPLATE--
+{{ 'en'|languageName }}
+{{ 'en'|languageName(null, 'de') }}
+{{ 'de'|languageName }}
+{{ 'ru'|languageName(null, 'ru') }}
+--DATA--
+return array()
+--CONFIG--
+Locale::setDefault('en');
+return array();
+--EXPECT--
+English
+Englisch
+German
+русский

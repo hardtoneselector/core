@@ -10,7 +10,7 @@ Filters
 -------
 
  * isCoreModule
- * languageName
+ * languageName(region = null, displayLocale = null)
  * notifyFilters(filterEventName)
  * php(func)
  * profileLinkByUserId

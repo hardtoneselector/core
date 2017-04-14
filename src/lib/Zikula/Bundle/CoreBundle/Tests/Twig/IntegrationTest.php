@@ -12,12 +12,16 @@
 namespace Zikula\Bundle\CoreBundle\Tests\Twig;
 
 use Zikula\Bundle\CoreBundle\Twig\Extension\CoreExtension;
+use Zikula\Common\Translator\IdentityTranslator;
 
 class IntegrationTest extends \Twig_Test_IntegrationTestCase
 {
     public function getExtensions()
     {
-        return [new CoreExtension()];
+        return [
+            new \Twig_Extension_Debug(),
+            new CoreExtension(new IdentityTranslator())
+        ];
     }
 
     public function getFixturesDir()
