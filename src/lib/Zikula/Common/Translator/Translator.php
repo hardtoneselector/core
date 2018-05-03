@@ -11,10 +11,10 @@
 
 namespace Zikula\Common\Translator;
 
+use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\HttpKernel\CacheWarmer\WarmableInterface;
 use Symfony\Component\Translation\Translator as BaseTranslator;
 use Symfony\Component\Translation\MessageSelector;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Translator
@@ -22,9 +22,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class Translator extends BaseTranslator implements WarmableInterface, TranslatorInterface
 {
     /**
-     * @var ContainerInterface
+     * @var ServiceLocator
      */
-    protected $container;
+    protected $serviceLocator;
 
     /**
      * @var string
@@ -57,15 +57,16 @@ class Translator extends BaseTranslator implements WarmableInterface, Translator
      * * debug: Whether to enable debugging or not (false by default)
      * * resource_files: List of translation resources available grouped by locale.
      *
-     * @param ContainerInterface $container A ContainerInterface instance
-     * @param MessageSelector $selector The message selector for pluralization
-     * @param array $loaderIds An array of loader Ids
-     * @param array $options An array of options
+     * @param ServiceLocator $serviceLocator
+     * @param MessageSelector $selector
+     * @param string $defaultLocale
+     * @param array $loaderIds
+     * @param array $options
      * @throws \InvalidArgumentException
      */
-    public function __construct(ContainerInterface $container, MessageSelector $selector = null, $loaderIds = [], array $options = [])
+    public function __construct(ServiceLocator $serviceLocator, MessageSelector $selector = null, $defaultLocale, $loaderIds = [], array $options = [])
     {
-        $this->container = $container;
+        $this->serviceLocator = $serviceLocator;
         $this->loaderIds = $loaderIds;
         // check option names
         if ($diff = array_diff(array_keys($options), array_keys($this->options))) {
@@ -79,7 +80,7 @@ class Translator extends BaseTranslator implements WarmableInterface, Translator
             $this->loadResources();
         }
 
-        parent::__construct($container->getParameter('kernel.default_locale'), $selector, $this->options['cache_dir'], $this->options['debug']);
+        parent::__construct($defaultLocale, $selector, $this->options['cache_dir'], $this->options['debug']);
     }
 
     /**
@@ -115,15 +116,13 @@ class Translator extends BaseTranslator implements WarmableInterface, Translator
         $this->loadResources();
         foreach ($this->loaderIds as $id => $aliases) {
             foreach ($aliases as $alias) {
-                $this->addLoader($alias, $this->container->get($id));
+                $this->addLoader($alias, $this->serviceLocator->get($id));
             }
         }
     }
 
     /**
      * Load zikula resource files
-     *
-     * @todo better load resource
      */
     private function loadResources()
     {
@@ -138,8 +137,6 @@ class Translator extends BaseTranslator implements WarmableInterface, Translator
                     // filename is domain.locale.format
                     list($domain, $locale, $format) = explode('.', basename($file), 3);
                 }
-
-//                list ($domain, $format) = explode('.', basename($file), 2);
 
                 $this->addResource($format, $file, $locale, $domain);
                 unset($this->options['resource_files'][$locale][$key]);
@@ -289,10 +286,10 @@ class Translator extends BaseTranslator implements WarmableInterface, Translator
     private function chooseMessage($m1, $m2, $n, $domain = null)
     {
         $message = $m2;
-        if (($this->getLocale() == 'en') || ($domain == 'en')) {
+        if (('en' == $this->getLocale()) || ('en' == $domain)) {
             $domains = $this->getCatalogue($this->getLocale())->getDomains();
             if (!in_array($this->domain, $domains)) {
-                $message = ($n == 1) ? $m1 : $m2;
+                $message = (1 == $n) ? $m1 : $m2;
             }
         }
 

@@ -31,8 +31,9 @@ class CategoryController extends AbstractController
 
     /**
      * @Route("/list/{id}", requirements={"category" = "^[1-9]\d*$"}, defaults={"id" = 1})
-     * @Template
      * @Theme("admin")
+     * @Template("ZikulaCategoriesModule:Category:list.html.twig")
+     *
      * @param Request $request
      * @param CategoryEntity $category
      * @return array
@@ -79,15 +80,15 @@ class CategoryController extends AbstractController
         return [
             'decorate' => true,
             'html' => true,
-            'childOpen' => function ($node) {
+            'childOpen' => function($node) {
                 $jsTreeData = [];
-                $jsTreeData['disabled'] = $node['status'] != 'A';
+                $jsTreeData['disabled'] = 'A' != $node['status'];
                 $jsTreeData['type'] = $node['is_leaf'] ? 'leaf' : 'default';
                 $jsTreeData = 'data-jstree="' . htmlentities(json_encode($jsTreeData)) . '" ';
 
                 return '<li ' . $jsTreeData . 'class="jstree-open" id="' . $this->domTreeNodePrefix . $node['id'] . '">';
             },
-            'nodeDecorator' => function ($node) use ($locale) {
+            'nodeDecorator' => function($node) use ($locale) {
                 $displayName = isset($node['display_name'][$locale]) ? $node['display_name'][$locale] : $node['name'];
                 $title = ' title="' . $this->createTitleAttribute($node, $displayName, $locale) . '"';
                 $classes = [];
@@ -118,7 +119,7 @@ class CategoryController extends AbstractController
         $title[] = $this->__('Display name') . ': ' . $displayName;
         $title[] = $this->__('Description') . ': ' . (isset($node['display_desc'][$locale]) ? $node['display_desc'][$locale] : '');
         $title[] = $this->__('Value') . ': ' . $node['value'];
-        $title[] = $this->__('Active') . ': ' . ($node['status'] == 'A' ? 'Yes' : 'No');
+        $title[] = $this->__('Active') . ': ' . ('A' == $node['status'] ? 'Yes' : 'No');
         $title[] = $this->__('Leaf') . ': ' . ($node['is_leaf'] ? 'Yes' : 'No');
         $title[] = $this->__('Locked') . ': ' . ($node['is_locked'] ? 'Yes' : 'No');
 

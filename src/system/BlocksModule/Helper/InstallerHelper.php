@@ -31,7 +31,7 @@ class InstallerHelper
         if (count($filters) <= 1) {
             foreach ($filters as $filter) {
                 foreach ($filter as $parameter => $value) {
-                    if ($parameter == 'fargs') {
+                    if ('fargs' == $parameter) {
                         parse_str($value, $queryVars);
                         foreach ($queryVars as $queryVarName => $queryVarValue) {
                             $newFilter[] = [$queryVarName, '==', $queryVarValue];
@@ -52,7 +52,7 @@ class InstallerHelper
                 }
             }
             foreach ($parameterValues as $parameter => $valueArray) {
-                if ($parameter == 'fargs') {
+                if ('fargs' == $parameter) {
                     $queryVarValues = [];
                     foreach ($valueArray as $value) {
                         parse_str($value, $queryVars);
@@ -81,8 +81,7 @@ class InstallerHelper
             $blockClassName = $moduleBundle->getNamespace() . '\Block\\' . ucwords($blockEntity->getBkey());
             $blockClassName = preg_match('/.*Block$/', $blockClassName) ? $blockClassName : $blockClassName . 'Block';
         } catch (\Exception $e) {
-            $moduleBundle = null;
-            $blockClassName = '\\' . ucwords($moduleName).'\\'.'Block\\'.ucwords($blockEntity->getBkey());
+            $blockClassName = '\\' . ucwords($moduleName) . '\\' . 'Block\\' . ucwords($blockEntity->getBkey());
             $blockClassName = preg_match('/.*Block$/', $blockClassName) ? $blockClassName : $blockClassName . 'Block';
             $blockClassNameOld = '\\' . ucwords($moduleName) . '_' . 'Block_' . ucwords($blockEntity->getBkey());
             $blockClassName = class_exists($blockClassName) ? $blockClassName : $blockClassNameOld;

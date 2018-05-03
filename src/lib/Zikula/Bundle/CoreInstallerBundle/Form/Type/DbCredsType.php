@@ -19,7 +19,6 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Regex;
-use Zikula\Bundle\CoreInstallerBundle\Form\AbstractType;
 use Zikula\Bundle\CoreInstallerBundle\Validator\Constraints\ValidPdoConnection;
 use Zikula\Common\Translator\IdentityTranslator;
 
@@ -98,19 +97,22 @@ class DbCredsType extends AbstractType
 
     private function getDbTypes()
     {
+        $availableDrivers = \PDO::getAvailableDrivers();
+
         $types = [];
-        if (function_exists('mysql_connect') || function_exists('mysqli_connect')) {
+        if (in_array('mysql', $availableDrivers)) {
             $types['MySQL'] = 'mysql';
         }
-        if (function_exists('mssql_connect')) {
-            $types['MSSQL (alpha)'] = 'mssql';
+        if (in_array('sqlsrv', $availableDrivers)) {
+            $types['MSSQL (alpha)'] = 'sqlsrv';
         }
-        if (function_exists('OCIPLogon')) {
+        if (in_array('oci8', $availableDrivers)) {
             $types['Oracle (alpha) via OCI8 driver'] = 'oci8';
+        } elseif (in_array('oci', $availableDrivers)) {
             $types['Oracle (alpha) via Oracle driver'] = 'oracle';
         }
-        if (function_exists('pg_connect')) {
-            $types['PostgreSQL'] = 'postgres';
+        if (in_array('pgsql', $availableDrivers)) {
+            $types['PostgreSQL'] = 'pgsql';
         }
 
         return $types;

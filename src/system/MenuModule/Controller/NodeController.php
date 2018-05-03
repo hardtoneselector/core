@@ -29,7 +29,7 @@ class NodeController extends AbstractController
     private $domTreeNodePrefix = 'node_';
 
     /**
-     * @Route("/contextMenu/{action}/{id}", options={"expose"=true})
+     * @Route("/contextMenu/{action}/{id}", options={"expose"=true, "i18n"=false})
      * @param Request $request
      * @param string $action
      * @param MenuItemEntity $menuItemEntity
@@ -56,14 +56,14 @@ class NodeController extends AbstractController
                         $parent = $repo->find($request->request->get('parent'));
                         $menuItemEntity->setParent($parent);
                         $menuItemEntity->setRoot($parent->getRoot());
-                    } elseif (empty($parent) && $request->request->has('after')) { // sibling of top-level child
+                    } elseif (empty($parentId) && $request->request->has('after')) { // sibling of top-level child
                         $sibling = $repo->find($request->request->get('after'));
                         $menuItemEntity->setParent($sibling->getParent());
                         $menuItemEntity->setRoot($sibling->getRoot());
                     }
                 }
                 $form = $this->createForm(MenuItemType::class, $menuItemEntity, [
-                    'translator' => $this->get('translator.default'),
+                    'translator' => $this->getTranslator(),
                 ]);
                 $form->get('after')->setData($request->request->get('after', null));
                 if ($form->handleRequest($request)->isValid()) {
@@ -72,7 +72,7 @@ class NodeController extends AbstractController
                     if (!empty($after)) {
                         $sibling = $repo->find($after);
                         $repo->persistAsNextSiblingOf($menuItemEntity, $sibling);
-                    } elseif ($mode == 'new') {
+                    } elseif ('new' == $mode) {
                         $repo->persistAsLastChild($menuItemEntity);
                     } // no need to persist edited entity
                     $this->get('doctrine')->getManager()->flush();
@@ -123,9 +123,9 @@ class NodeController extends AbstractController
         $entityId = str_replace($this->domTreeNodePrefix, '', $node['id']);
         $menuItemEntity = $repo->find($entityId);
         $oldParent = $request->request->get('old_parent');
-        $oldPosition = (int) $request->request->get('old_position');
+        $oldPosition = (int)$request->request->get('old_position');
         $parent = $request->request->get('parent');
-        $position = (int) $request->request->get('position');
+        $position = (int)$request->request->get('position');
         if ($oldParent == $parent) {
             $diff = $oldPosition - $position; // if $diff is positive, then node moved up
             $methodName = $diff > 0 ? 'moveUp' : 'moveDown';

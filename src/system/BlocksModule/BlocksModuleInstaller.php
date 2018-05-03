@@ -47,8 +47,6 @@ class BlocksModuleInstaller extends AbstractExtensionInstaller
         // Set a default value for a module variable
         $this->setVar('collapseable', false);
 
-        $this->hookApi->installSubscriberHooks($this->bundle->getMetaData());
-
         // Initialisation successful
         return true;
     }
@@ -65,7 +63,6 @@ class BlocksModuleInstaller extends AbstractExtensionInstaller
         // Upgrade dependent on old version number
         switch ($oldversion) {
             case '3.8.1':
-                $this->hookApi->installSubscriberHooks($this->bundle->getMetaData());
             case '3.8.2':
             case '3.9.0':
                 $sql = "SELECT * FROM blocks";
@@ -76,11 +73,11 @@ class BlocksModuleInstaller extends AbstractExtensionInstaller
                         $content = unserialize($content);
                         foreach ($content as $k => $item) {
                             if (is_string($item)) {
-                                if (strpos($item, 'blocks_block_extmenu_topnav.tpl') !== false) {
+                                if (false !== strpos($item, 'blocks_block_extmenu_topnav.tpl')) {
                                     $content[$k] = str_replace('blocks_block_extmenu_topnav.tpl', 'Block/Extmenu/topnav.tpl', $item);
-                                } elseif (strpos($item, 'blocks_block_extmenu.tpl') !== false) {
+                                } elseif (false !== strpos($item, 'blocks_block_extmenu.tpl')) {
                                     $content[$k] = str_replace('blocks_block_extmenu.tpl', 'Block/Extmenu/extmenu.tpl', $item);
-                                } elseif (strpos($item, 'menutree/blocks_block_menutree_') !== false) {
+                                } elseif (false !== strpos($item, 'menutree/blocks_block_menutree_')) {
                                     $content[$k] = str_replace('menutree/blocks_block_menutree_', 'Block/Menutree/', $item);
                                 }
                             }
@@ -118,7 +115,7 @@ class BlocksModuleInstaller extends AbstractExtensionInstaller
                 $this->entityManager->flush();
 
                 $collapseable = $this->getVar('collapseable');
-                $this->setVar('collapseable', (bool) $collapseable);
+                $this->setVar('collapseable', (bool)$collapseable);
 
             case '3.9.2':
                 // convert Text and Html block types so properties is proper array
@@ -137,10 +134,10 @@ class BlocksModuleInstaller extends AbstractExtensionInstaller
                 $searchBlocks = $this->entityManager->getRepository('ZikulaBlocksModule:BlockEntity')->findBy(['blocktype' => 'Search']);
                 foreach ($searchBlocks as $searchBlock) {
                     $properties = $searchBlock->getProperties();
-                    $properties['displaySearchBtn'] = (bool) $properties['displaySearchBtn'];
+                    $properties['displaySearchBtn'] = (bool)$properties['displaySearchBtn'];
                     if (isset($properties['active'])) {
                         foreach ($properties['active'] as $module => $active) {
-                            $properties['active'][$module] = (bool) $active;
+                            $properties['active'][$module] = (bool)$active;
                         }
                     }
                     $searchBlock->setProperties($properties);
@@ -171,7 +168,8 @@ class BlocksModuleInstaller extends AbstractExtensionInstaller
                 }
                 $this->entityManager->getConnection()->executeQuery("UPDATE group_perms SET component = REPLACE(component, 'Languageblock', 'LocaleBlock') WHERE component LIKE 'Languageblock%'");
             case '3.9.7':
-                // future upgrade routines
+            case '3.9.8':
+            // future upgrade routines
         }
 
         // Update successful
@@ -217,7 +215,7 @@ class BlocksModuleInstaller extends AbstractExtensionInstaller
         }
         $this->entityManager->flush();
 
-        $hellomessage = $this->__('<p><a href="http://zikula.org/">Zikula</a> is an Open Source Content Application Framework (CMF) built on top of Symfony.</p><p>With Zikula:</p><ul><li><strong>Power:</strong> You get the all the features of <a href="http://symfony.com">Symfony</a> PLUS: </li><li><strong>User Management:</strong> Built in User and Group management with Rights/Roles control</li><li><strong>Front end control:</strong> You can customise all aspects of the site\'s appearance through themes, with support for <a href="http://jquery.com">jQuery</a>, <a href="http://getbootstrap.com">Bootstrap</a> and many other modern technologies</li><li><strong>Internationalization (i18n):</strong> You can mark content as being suitable for either a single language or for all languages, and can control all aspects of localisation of your site</li><li><strong>Extensibility:</strong> you get a standard application-programming interface (API) that lets you easily extend your site\'s functionality through modules</li><li><strong>More:</strong> Admin UI, global categories, site-wide search, content blocks, menu creation, and more!</li><li><strong>Support:</strong> you can get help and support from the Zikula community of webmasters and developers at <a href="http://www.zikula.org">zikula.org</a>, <a href="https://github.com/zikula/core">Github</a> and Slack.</li></ul><p>Enjoy using Zikula!</p><p><strong>The Zikula team</strong></p><p><em>Note: Zikula is Free Open Source Software (FOSS) licensed under the GNU General Public License.</em></p>');
+        $hellomessage = $this->__('<p><a href="http://zikula.de">Zikula</a> is an Open Source Content Application Framework (CMF) built on top of Symfony.</p><p>With Zikula:</p><ul><li><strong>Power:</strong> You get the all the features of <a href="http://symfony.com">Symfony</a> PLUS: </li><li><strong>User Management:</strong> Built in User and Group management with Rights/Roles control</li><li><strong>Front end control:</strong> You can customise all aspects of the site\'s appearance through themes, with support for <a href="http://jquery.com">jQuery</a>, <a href="http://getbootstrap.com">Bootstrap</a> and many other modern technologies</li><li><strong>Internationalization (i18n):</strong> You can mark content as being suitable for either a single language or for all languages, and can control all aspects of localisation of your site</li><li><strong>Extensibility:</strong> you get a standard application-programming interface (API) that lets you easily extend your site\'s functionality through modules</li><li><strong>More:</strong> Admin UI, global categories, site-wide search, content blocks, menu creation, and more!</li><li><strong>Support:</strong> you can get help and support from the Zikula community of webmasters and developers at <a href="http://zikula.de">zikula.de</a>, <a href="https://github.com/zikula/core">Github</a> and <a href="https://zikula.slack.com/">Slack</a>.</li></ul><p>Enjoy using Zikula!</p><p><strong>The Zikula team</strong></p><p><em>Note: Zikula is Free Open Source Software (FOSS) licensed under the GNU General Public License.</em></p>');
 
         $blocks = [];
         $extensionRepo = $this->entityManager->getRepository('\Zikula\ExtensionsModule\Entity\ExtensionEntity');
@@ -284,6 +282,6 @@ class BlocksModuleInstaller extends AbstractExtensionInstaller
 
     private function isSerialized($string)
     {
-        return $string === 'b:0;' || @unserialize($string) !== false;
+        return 'b:0;' === $string || false !== @unserialize($string);
     }
 }

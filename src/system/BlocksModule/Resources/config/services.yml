@@ -47,12 +47,16 @@ services:
     zikula_blocks_module.form.block_type:
         class: Zikula\BlocksModule\Form\Type\BlockType
         arguments:
-          - "@zikula_blocks_module.api.block"
-          - "@zikula_blocks_module.api.block_filter"
           - "@translator.default"
           - "@zikula_settings_module.locale_api"
         tags:
             - { name: form.type }
+
+    zikula_blocks_module.block.finclude_block_type:
+        class: Zikula\BlocksModule\Block\Form\Type\FincludeBlockType
+        arguments: ['@translator.default']
+        tags:
+            - { name: form.type, alias: Zikula\BlocksModule\Block\Form\Type\FincludeBlockType }
 
     twig.extension.zikula_blocks_module:
         class: Zikula\BlocksModule\Twig\Extension\BlocksExtension
@@ -76,3 +80,10 @@ services:
           - "@=container.hasParameter('upgrading') ? parameter('upgrading') : false"
         tags:
             - { name: kernel.event_subscriber }
+
+    zikula_blocks_module.hook_subscriber.ui_hook_subscriber:
+        class: Zikula\BlocksModule\HookSubscriber\UiHooksSubscriber
+        arguments:
+          - "@translator.default"
+        tags:
+            - { name: zikula.hook_subscriber, areaName: 'subscriber.blocks.ui_hooks.htmlblock.content' }

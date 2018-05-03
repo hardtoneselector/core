@@ -53,7 +53,7 @@ abstract class AbstractController extends Controller
      *
      * @param AbstractBundle $bundle
      */
-    public function boot(AbstractBundle $bundle)
+    protected function boot(AbstractBundle $bundle)
     {
         // load optional bootstrap
         $bootstrap = $bundle->getPath() . "/bootstrap.php";
@@ -141,7 +141,7 @@ abstract class AbstractController extends Controller
      */
     public function createNotFoundException($message = null, \Exception $previous = null)
     {
-        $message = null === $message ? __('Page not found') : $message;
+        $message = null === $message ? $this->__('Page not found') : $message;
 
         return new NotFoundHttpException($message, $previous);
     }
@@ -159,7 +159,7 @@ abstract class AbstractController extends Controller
      */
     public function createAccessDeniedException($message = null, \Exception $previous = null)
     {
-        $message = null === $message ? __('Access denied') : $message;
+        $message = null === $message ? $this->__('Access denied') : $message;
 
         return new AccessDeniedException($message, $previous);
     }
@@ -176,13 +176,13 @@ abstract class AbstractController extends Controller
 
     /**
      * Convenience shortcut to check if user has requested permissions.
-     * @param null $component
-     * @param null $instance
-     * @param null $level
-     * @param null $user
+     * @param string $component
+     * @param string $instance
+     * @param int $level
+     * @param int $user
      * @return bool
      */
-    public function hasPermission($component = null, $instance = null, $level = null, $user = null)
+    protected function hasPermission($component = null, $instance = null, $level = null, $user = null)
     {
         return $this->container->get('zikula_permissions_module.api.permission')->hasPermission($component, $instance, $level, $user);
     }

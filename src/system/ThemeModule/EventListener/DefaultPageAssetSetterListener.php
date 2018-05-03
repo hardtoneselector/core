@@ -141,31 +141,33 @@ class DefaultPageAssetSetterListener implements EventSubscriberInterface
 
     private function addJquery()
     {
-        $jquery = $this->params['env'] != 'dev' ? 'jquery.min.js' : 'jquery.js';
+        $jquery = 'dev' != $this->params['env'] ? 'jquery.min.js' : 'jquery.js';
         $this->jsAssetBag->add([$this->assetHelper->resolve("jquery/$jquery") => AssetBag::WEIGHT_JQUERY]);
         $this->jsAssetBag->add([$this->assetHelper->resolve('bundles/core/js/jquery_config.js') => AssetBag::WEIGHT_JQUERY + 1]);
     }
 
     private function addFosJsRouting()
     {
-        if ($this->params['env'] != 'dev' && file_exists(realpath('web/js/fos_js_routes.js'))) {
+        // commented out as a workaround for #3807 until #3804 is solved
+        /*if ($this->params['env'] != 'dev' && file_exists(realpath('web/js/fos_js_routes.js'))) {
             $this->jsAssetBag->add([
                 $this->assetHelper->resolve('bundles/fosjsrouting/js/router.js') => AssetBag::WEIGHT_ROUTER_JS,
                 $this->assetHelper->resolve('js/fos_js_routes.js') => AssetBag::WEIGHT_ROUTES_JS
             ]);
-        } else {
-            $routeScript = $this->router->generate('fos_js_routing_js', ['callback' => 'fos.Router.setData']);
-            $this->jsAssetBag->add([
-                $this->assetHelper->resolve('bundles/fosjsrouting/js/router.js') => AssetBag::WEIGHT_ROUTER_JS,
-                $routeScript => AssetBag::WEIGHT_ROUTES_JS
-            ]);
-        }
+        } else {*/
+        $routeScript = $this->router->generate('fos_js_routing_js', ['callback' => 'fos.Router.setData']);
+        $this->jsAssetBag->add([
+            $this->assetHelper->resolve('bundles/fosjsrouting/js/router.js') => AssetBag::WEIGHT_ROUTER_JS,
+            $routeScript => AssetBag::WEIGHT_ROUTES_JS
+        ]);
+        /*}*/
     }
 
     private function addJsTranslation()
     {
-        // @todo consider option of dumping the translations to /web
-        // @todo add bundle translations? need domain name e.g. zikulapagesmodule
+        // consider option of dumping the translations to /web
+        // add bundle translations? need domain name e.g. zikulapagesmodule
+        // #3650
         $jsScript = $this->router->generate('bazinga_jstranslation_js', ['domain' => 'zikula_javascript'], RouterInterface::ABSOLUTE_URL);
         $this->jsAssetBag->add([
             $this->assetHelper->resolve('bundles/bazingajstranslation/js/translator.min.js') => AssetBag::WEIGHT_JS_TRANSLATOR,

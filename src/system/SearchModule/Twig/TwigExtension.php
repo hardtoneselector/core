@@ -46,7 +46,7 @@ class TwigExtension extends \Twig_Extension
     /**
      * Returns a list of custom Twig functions.
      *
-     * @return array
+     * @return \Twig_SimpleFunction[]
      */
     public function getFunctions()
     {
@@ -58,7 +58,7 @@ class TwigExtension extends \Twig_Extension
     /**
      * Returns a list of custom Twig filters.
      *
-     * @return array
+     * @return \Twig_SimpleFilter[]
      */
     public function getFilters()
     {
@@ -81,7 +81,7 @@ class TwigExtension extends \Twig_Extension
      */
     public function searchVarToFieldNames($data = '', $prefix = 'modvar', $isRecursiveCall = false)
     {
-        $dataValues = $data != '' && $isRecursiveCall ? $data : $this->variableApi->getAll('ZikulaSearchModule');
+        $dataValues = '' != $data && $isRecursiveCall ? $data : $this->variableApi->getAll('ZikulaSearchModule');
 
         $fields = [];
         if (empty($dataValues)) {

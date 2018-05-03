@@ -28,14 +28,16 @@ use Zikula\Core\Response\PlainResponse;
 use Zikula\GroupsModule\Constant;
 use Zikula\ThemeModule\Engine\Annotation\Theme;
 use Zikula\UsersModule\Constant as UsersConstant;
-use Zikula\UsersModule\Container\HookContainer;
 use Zikula\UsersModule\Entity\UserEntity;
-use Zikula\UsersModule\Form\RegistrationType\ApproveRegistrationConfirmationType;
+use Zikula\UsersModule\Event\UserFormAwareEvent;
+use Zikula\UsersModule\Event\UserFormDataEvent;
 use Zikula\UsersModule\Form\Type\AdminModifyUserType;
 use Zikula\UsersModule\Form\Type\DeleteConfirmationType;
 use Zikula\UsersModule\Form\Type\DeleteType;
 use Zikula\UsersModule\Form\Type\MailType;
+use Zikula\UsersModule\Form\Type\RegistrationType\ApproveRegistrationConfirmationType;
 use Zikula\UsersModule\Form\Type\SearchUserType;
+use Zikula\UsersModule\HookSubscriber\UserManagementUiHooksSubscriber;
 use Zikula\UsersModule\RegistrationEvents;
 use Zikula\UsersModule\UserEvents;
 
@@ -48,7 +50,7 @@ class UserAdministrationController extends AbstractController
     /**
      * @Route("/list/{sort}/{sortdir}/{letter}/{startnum}")
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaUsersModule:UserAdministration:list.html.twig")
      * @param Request $request
      * @param string $sort
      * @param string $sortdir
@@ -127,7 +129,7 @@ class UserAdministrationController extends AbstractController
     /**
      * @Route("/user/modify/{user}", requirements={"user" = "^[1-9]\d*$"})
      * @Theme("admin")
-     * @Template()
+     * @Template("ZikulaUsersModule:UserAdministration:modify.html.twig")
      * @param Request $request
      * @param UserEntity $user
      * @return array|\Symfony\Component\HttpFoundation\RedirectResponse
@@ -140,19 +142,19 @@ class UserAdministrationController extends AbstractController
         if (UsersConstant::USER_ID_ANONYMOUS === $user->getUid()) {
             throw new AccessDeniedException($this->__("Error! You can't edit the guest account."));
         }
+        $dispatcher = $this->get('event_dispatcher');
 
         $form = $this->createForm(AdminModifyUserType::class, $user, [
             'translator' => $this->get('translator.default')
         ]);
         $originalUserName = $user->getUname();
         $originalGroups = $user->getGroups()->toArray();
+        $formEvent = new UserFormAwareEvent($form);
+        $dispatcher->dispatch(UserEvents::EDIT_FORM, $formEvent);
         $form->handleRequest($request);
 
-        $event = new GenericEvent($form->getData(), [], new ValidationProviders());
-        $this->get('event_dispatcher')->dispatch(UserEvents::MODIFY_VALIDATE, $event);
-        $validators = $event->getData();
-        $hook = new ValidationHook($validators);
-        $this->get('hook_dispatcher')->dispatch(HookContainer::EDIT_VALIDATE, $hook);
+        $hook = new ValidationHook(new ValidationProviders());
+        $this->get('hook_dispatcher')->dispatch(UserManagementUiHooksSubscriber::EDIT_VALIDATE, $hook);
         $validators = $hook->getValidators();
 
         if ($form->isValid() && !$validators->hasErrors()) {
@@ -167,10 +169,10 @@ class UserAdministrationController extends AbstractController
                 ];
                 $eventData = ['old_value' => $originalUserName];
                 $updateEvent = new GenericEvent($user, $eventArgs, $eventData);
-                $this->get('event_dispatcher')->dispatch(UserEvents::UPDATE_ACCOUNT, $updateEvent);
-
-                $this->get('event_dispatcher')->dispatch(UserEvents::MODIFY_PROCESS, new GenericEvent($user));
-                $this->get('hook_dispatcher')->dispatch(HookContainer::EDIT_PROCESS, new ProcessHook($user->getUid()));
+                $dispatcher->dispatch(UserEvents::UPDATE_ACCOUNT, $updateEvent);
+                $formDataEvent = new UserFormDataEvent($user, $form);
+                $dispatcher->dispatch(UserEvents::EDIT_FORM_HANDLE, $formDataEvent);
+                $this->get('hook_dispatcher')->dispatch(UserManagementUiHooksSubscriber::EDIT_PROCESS, new ProcessHook($user->getUid()));
 
                 $this->addFlash('status', $this->__("Done! Saved user's account information."));
             }
@@ -183,13 +185,14 @@ class UserAdministrationController extends AbstractController
 
         return [
             'form' => $form->createView(),
+            'additional_templates' => isset($formEvent) ? $formEvent->getTemplates() : []
         ];
     }
 
     /**
      * @Route("/approve/{user}/{force}", requirements={"user" = "^[1-9]\d*$"})
      * @Theme("admin")
-     * @Template()
+     * @Template("ZikulaUsersModule:UserAdministration:approve.html.twig")
      * @param Request $request
      * @param UserEntity $user
      * @param bool $force
@@ -229,7 +232,7 @@ class UserAdministrationController extends AbstractController
             if ($form->get('confirm')->isClicked()) {
                 $this->get('zikula_users_module.helper.registration_helper')->approve($user);
                 $mailHelper = $this->get('zikula_users_module.helper.mail_helper');
-                if ($user->getActivated() == UsersConstant::ACTIVATED_PENDING_REG) {
+                if (UsersConstant::ACTIVATED_PENDING_REG == $user->getActivated()) {
                     $notificationErrors = $mailHelper->createAndSendRegistrationMail($user, true, false);
                 } else {
                     $notificationErrors = $mailHelper->createAndSendUserMail($user, true, false);
@@ -255,8 +258,8 @@ class UserAdministrationController extends AbstractController
 
     /**
      * @Route("/delete/{user}", requirements={"user" = "^[1-9]\d*$"})
-     * @Template
      * @Theme("admin")
+     * @Template("ZikulaUsersModule:UserAdministration:delete.html.twig")
      * @param Request $request
      * @param UserEntity|null $user
      * @return array
@@ -267,7 +270,7 @@ class UserAdministrationController extends AbstractController
             throw new AccessDeniedException();
         }
         $users = new ArrayCollection();
-        if ($request->getMethod() == 'POST') {
+        if ('POST' == $request->getMethod()) {
             $deleteForm = $this->createForm(DeleteType::class, [], [
                 'choices' => $this->get('zikula_users_module.user_repository')->queryBySearchForm(),
                 'action' => $this->generateUrl('zikulausersmodule_useradministration_delete'),
@@ -316,20 +319,20 @@ class UserAdministrationController extends AbstractController
                 $event = new GenericEvent(null, ['id' => $uid], new ValidationProviders());
                 $validators = $this->get('event_dispatcher')->dispatch(UserEvents::DELETE_VALIDATE, $event)->getData();
                 $hook = new ValidationHook($validators);
-                $this->get('hook_dispatcher')->dispatch(HookContainer::DELETE_VALIDATE, $hook);
+                $this->get('hook_dispatcher')->dispatch(UserManagementUiHooksSubscriber::DELETE_VALIDATE, $hook);
                 $validators = $hook->getValidators();
                 if ($validators->hasErrors()) {
                     $valid = false;
                 }
             }
             if ($valid && $deleteConfirmationForm->isValid()) {
-                // @todo send email to 'denied' registrations. see MailHelper::sendNotification (regdeny)
+                // send email to 'denied' registrations. see MailHelper::sendNotification (regdeny) #2915
                 $deletedUsers = $this->get('zikula_users_module.user_repository')->query(['uid' => ['operator' => 'in', 'operand' => $userIds]]);
                 foreach ($deletedUsers as $deletedUser) {
-                    $eventName = $deletedUser->getActivated() == UsersConstant::ACTIVATED_ACTIVE ? UserEvents::DELETE_ACCOUNT : RegistrationEvents::DELETE_REGISTRATION;
+                    $eventName = UsersConstant::ACTIVATED_ACTIVE == $deletedUser->getActivated() ? UserEvents::DELETE_ACCOUNT : RegistrationEvents::DELETE_REGISTRATION;
                     $this->get('event_dispatcher')->dispatch($eventName, new GenericEvent($deletedUser->getUid()));
                     $this->get('event_dispatcher')->dispatch(UserEvents::DELETE_PROCESS, new GenericEvent(null, ['id' => $deletedUser->getUid()]));
-                    $this->get('hook_dispatcher')->dispatch(HookContainer::DELETE_PROCESS, new ProcessHook($deletedUser->getUid()));
+                    $this->get('hook_dispatcher')->dispatch(UserManagementUiHooksSubscriber::DELETE_PROCESS, new ProcessHook($deletedUser->getUid()));
                     $this->get('zikula_users_module.user_repository')->removeAndFlush($deletedUser);
                 }
                 $this->addFlash('success', $this->_fn('User deleted!', '%n users deleted!', count($deletedUsers), ['%n' => count($deletedUsers)]));
@@ -347,7 +350,7 @@ class UserAdministrationController extends AbstractController
     /**
      * @Route("/search")
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaUsersModule:UserAdministration:search.html.twig")
      * @param Request $request
      * @return array
      */
@@ -361,7 +364,7 @@ class UserAdministrationController extends AbstractController
         ]);
         $form->handleRequest($request);
         if ($form->isSubmitted()) {
-            // @TODO the users.search.process_edit event is no longer dispatched with this method. could it be done in a Transformer?
+            // the users.search.process_edit event is no longer dispatched with this method. could it be done in a Transformer? #3652
             $deleteForm = $this->createForm(DeleteType::class, [], [
                 'choices' => $this->get('zikula_users_module.user_repository')->queryBySearchForm($form->getData()),
                 'action' => $this->generateUrl('zikulausersmodule_useradministration_delete'),

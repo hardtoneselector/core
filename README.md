@@ -2,9 +2,7 @@
 [![StyleCI](https://styleci.io/repos/781544/shield?branch=master)](https://styleci.io/repos/781544)
 [![SensioLabsInsight](https://insight.sensiolabs.com/projects/cc7028a5-80d5-4835-a4a4-0a179a690487/mini.png)](https://insight.sensiolabs.com/projects/cc7028a5-80d5-4835-a4a4-0a179a690487)
 [![Code Climate](https://codeclimate.com/github/zikula/core/badges/gpa.svg)](https://codeclimate.com/github/zikula/core)
-[![Code Climate Coverage](https://codeclimate.com/github/zikula/core/badges/coverage.svg)](https://codeclimate.com/github/zikula/core)
 [![Scrutinizer](https://scrutinizer-ci.com/g/zikula/core/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/zikula/core/)
-[![Scrutinizer Coverage](https://scrutinizer-ci.com/g/zikula/core/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/zikula/core/)
 
 Zikula Core - Application Framework
 ===================================
@@ -19,7 +17,7 @@ and module development called [ModuleStudio](http://modulestudio.de/en/) or MOST
 
 Zikula can quickly become a Content Management System utilizing community-driven modules.
 
-For more information visit http://zikula.org/
+For more information visit http://zikula.de/
 
 Requirements
 ------------
@@ -31,7 +29,7 @@ Requirements
    to 128 MB for the installation process.
  - Zikula requires that `date.timezone` be set in the `php.ini` configuration file (or `.htaccess`).
  - Zikula requires `AllowOverride All` and the `mod_rewrite` module (be aware the Apache 2.3.9+ has changed
-   the default setting for `AllowOverride` to `None`.
+   the default setting for `AllowOverride` to `None`).
  - Zikula also requires other php extensions and configurations. These are checked during the installation
    process and if there are problems, you will be notified. If you discover errors, check with your hosting
    provider on how to rectify these issues. Typically, they will require changing the `php.ini` file or
@@ -41,7 +39,7 @@ Requirements
 Documentation
 -------------
 
-Please see our [developer documentation](https://github.com/zikula/core/tree/master/src/docs/Core-2.0)
+Please see our [developer documentation](https://github.com/zikula/core/tree/2.0/src/docs)
 
 
 Contributing
@@ -50,7 +48,7 @@ Contributing
 Contributions can be made to Zikula in a number of ways
 
   1. By using our software!
-  2. Assisting other users at the [user community site](http://zikula.org/forum/)
+  2. Assisting other users at our [Slack channels](https://zikula.slack.com/)
   3. Creating themes for Zikula.
   4. Authoring additional modules for Zikula.
   5. Contributing bug fixes and patches to the Core.

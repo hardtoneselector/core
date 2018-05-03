@@ -24,12 +24,12 @@ class Merger implements MergerInterface
     /**
      * @var CacheProvider
      */
-    private $cssCache;
+    private $jsCache;
 
     /**
      * @var CacheProvider
      */
-    private $jsCache;
+    private $cssCache;
 
     /**
      * @var string
@@ -56,7 +56,7 @@ class Merger implements MergerInterface
      * @param RouterInterface $router
      * @param CacheProvider $jsCache
      * @param CacheProvider $cssCache
-     * @param string $kernelRootDir
+     * @param string $kernelProjectDir
      * @param string $lifetime
      * @param bool $minify
      * @param bool $compress
@@ -65,7 +65,7 @@ class Merger implements MergerInterface
         RouterInterface $router,
         CacheProvider $jsCache,
         CacheProvider $cssCache,
-        $kernelRootDir,
+        $kernelProjectDir,
         $lifetime = "1 day",
         $minify = false,
         $compress = false
@@ -73,8 +73,8 @@ class Merger implements MergerInterface
         $this->router = $router;
         $this->jsCache = $jsCache;
         $this->cssCache = $cssCache;
-        $rootDir = realpath($kernelRootDir . '/../');
-        $this->rootDir = str_replace($router->getContext()->getBaseUrl(), '', $rootDir);
+        $projectDir = realpath($kernelProjectDir . '/');
+        $this->rootDir = str_replace($router->getContext()->getBaseUrl(), '', $projectDir);
         $this->lifetime = abs((new \DateTime($lifetime))->getTimestamp() - (new \DateTime())->getTimestamp());
         $this->minify = $minify;
         $this->compress = $compress;
@@ -103,16 +103,19 @@ class Merger implements MergerInterface
         $cacheService = $this->$cacheName;
         $key = md5(serialize($assets)) . (int)$this->minify . (int)$this->compress . $this->lifetime . '.' . $type;
         $data = $cacheService->fetch($key);
-        if ($data === false) {
+        if (false === $data) {
             $data = [];
-            foreach ($cachedFiles as $file) {
+            foreach ($cachedFiles as $k => $file) {
                 $this->readFile($data, $file, $type);
+                // avoid exposure of absolute server path
+                $pathParts = explode($this->rootDir, $file);
+                $cachedFiles[$k] = end($pathParts);
             }
             $now = new \DateTime();
             array_unshift($data, sprintf("/* --- Combined file written: %s */\n\n", $now->format('c')));
             array_unshift($data, sprintf("/* --- Combined files:\n%s\n*/\n\n", implode("\n", $cachedFiles)));
             $data = implode('', $data);
-            if ($type == 'css' && $this->minify) {
+            if ('css' == $type && $this->minify) {
                 $data = $this->minify($data);
             }
             $cacheService->save($key, $data, $this->lifetime);
@@ -142,12 +145,15 @@ class Merger implements MergerInterface
             return;
         }
 
-        $contents[] = "/* --- Source file: {$file} */\n\n";
+        // avoid exposure of absolute server path
+        $pathParts = explode($this->rootDir, $file);
+        $relativePath = end($pathParts);
+        $contents[] = "/* --- Source file: {$relativePath} */\n\n";
         $inMultilineComment = false;
         $importsAllowd = true;
         $wasCommentHack = false;
         while (!feof($source)) {
-            if ($ext == 'css') {
+            if ('css' == $ext) {
                 $line = fgets($source, 4096);
                 $lineParse = trim($line);
                 $lineParse_length = mb_strlen($lineParse, 'UTF-8');
@@ -156,35 +162,35 @@ class Merger implements MergerInterface
                 for ($i = 0; $i < $lineParse_length; $i++) {
                     $char = $lineParse[$i];
                     $nextchar = $i < ($lineParse_length - 1) ? $lineParse[$i + 1] : '';
-                    if (!$inMultilineComment && $char == '/' && $nextchar == '*') {
+                    if (!$inMultilineComment && '/' == $char && '*' == $nextchar) {
                         // a multiline comment starts here
                         $inMultilineComment = true;
                         $wasCommentHack = false;
                         $newLine .= $char . $nextchar;
                         $i++;
-                    } elseif ($inMultilineComment && $char == '*' && $nextchar == '/') {
+                    } elseif ($inMultilineComment && '*' == $char && '/' == $nextchar) {
                         // a multiline comment stops here
                         $inMultilineComment = false;
                         $newLine .= $char . $nextchar;
-                        if (substr($lineParse, $i - 3, 8) == '/*\*//*/') {
+                        if ('/*\*//*/' == substr($lineParse, $i - 3, 8)) {
                             $wasCommentHack = true;
                             $i += 3; // move to end of hack process hack as it where
                             $newLine .= '/*/'; // fix hack comment because we lost some chars with $i += 3
                         }
                         $i++;
-                    } elseif ($importsAllowd && $char == '@' && substr($lineParse, $i, 7) == '@import') {
+                    } elseif ($importsAllowd && '@' == $char && '@import' == substr($lineParse, $i, 7)) {
                         // an @import starts here
                         $lineParseRest = trim(substr($lineParse, $i + 7));
-                        if (strtolower(substr($lineParseRest, 0, 3)) == 'url') {
+                        if ('url' == strtolower(substr($lineParseRest, 0, 3))) {
                             // the @import uses url to specify the path
                             $posEnd = strpos($lineParse, ';', $i);
                             $charsEnd = substr($lineParse, $posEnd - 1, 2);
-                            if ($charsEnd == ');') {
+                            if (');' == $charsEnd) {
                                 // used url() without media
                                 $start = strpos($lineParseRest, '(') + 1;
                                 $end = strpos($lineParseRest, ')');
                                 $url = substr($lineParseRest, $start, $end - $start);
-                                if ($url[0] == '"' | $url[0] == "'") {
+                                if ('"' == $url[0] | "'" == $url[0]) {
                                     $url = substr($url, 1, strlen($url) - 2);
                                 }
                                 // fix url
@@ -206,7 +212,7 @@ class Merger implements MergerInterface
                                 $start = strpos($lineParseRest, '(') + 1;
                                 $end = strpos($lineParseRest, ')');
                                 $url = substr($lineParseRest, $start, $end - $start);
-                                if ($url[0] == '"' | $url[0] == "'") {
+                                if ('"' == $url[0] | "'" == $url[0]) {
                                     $url = substr($url, 1, strlen($url) - 2);
                                 }
                                 // fix url
@@ -216,7 +222,7 @@ class Merger implements MergerInterface
                                 // skip @import statement
                                 $i += $posEnd - $i;
                             }
-                        } elseif (substr($lineParseRest, 0, 1) == '"' || substr($lineParseRest, 0, 1) == '\'') {
+                        } elseif ('"' == substr($lineParseRest, 0, 1) || '\'' == substr($lineParseRest, 0, 1)) {
                             // the @import uses an normal string to specify the path
                             $posEnd = strpos($lineParseRest, ';');
                             $url = substr($lineParseRest, 1, $posEnd - 2);
@@ -235,7 +241,7 @@ class Merger implements MergerInterface
                             // skip @import statement
                             $i += $posEnd - $i;
                         }
-                    } elseif (!$inMultilineComment && $char != ' ' && $char != "\n" && $char != "\r\n" && $char != "\r") {
+                    } elseif (!$inMultilineComment && ' ' != $char && "\n" != $char && "\r\n" != $char && "\r" != $char) {
                         // css rule found -> stop processing of @import statements
                         $importsAllowd = false;
                         $newLine .= $char;
@@ -254,7 +260,7 @@ class Merger implements MergerInterface
             }
         }
         fclose($source);
-        if ($ext == 'js') {
+        if ('js' == $ext) {
             $contents[] = "\n;\n";
         } else {
             $contents[] = "\n\n";
@@ -264,10 +270,10 @@ class Merger implements MergerInterface
     /**
      * Fix paths in CSS files.
      * @param string $line CSS file line
-     * @param string $relativeFilePath relative path to original file
+     * @param array $filePathSegments segments of relative path to original file
      * @return string
      */
-    private function cssFixPath($line, $relativeFilePath)
+    private function cssFixPath($line, $filePathSegments = [])
     {
         $regexpurl = '/url\([\'"]?([\.\/]*)(.*?)[\'"]?\)/i';
         if (false === strpos($line, 'url')) {
@@ -276,11 +282,10 @@ class Merger implements MergerInterface
 
         preg_match_all($regexpurl, $line, $matches, PREG_SET_ORDER);
         foreach ($matches as $match) {
-            if ((strpos($match[1], '/') !== 0) && (substr($match[2], 0, 7) != 'http://') && (substr($match[2], 0, 8) != 'https://')) {
+            if (0 !== strpos($match[1], '/') && 'http://' != substr($match[2], 0, 7) && 'https://' != substr($match[2], 0, 8)) {
                 $depth = substr_count($match[1], '../') * -1;
-                $path = $depth < 0 ? array_slice($relativeFilePath, 0, $depth) : $relativeFilePath;
-                $path = implode('/', $path);
-                $path = !empty($path) ? $path . '/' : '/';
+                $pathSegments = $depth < 0 ? array_slice($filePathSegments, 0, $depth) : $filePathSegments;
+                $path = implode('/', $pathSegments) . '/';
                 $line = str_replace($match[0], "url('{$path}{$match[2]}')", $line);
             }
         }
@@ -290,7 +295,7 @@ class Merger implements MergerInterface
 
     /**
      * Remove comments, whitespace and spaces from css files
-     * @param $contents
+     * @param string $contents
      * @return string
      */
     private function minify($contents)

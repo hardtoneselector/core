@@ -31,13 +31,13 @@ class CacheClearer
      * @param ExposedRoutesExtractorInterface $fosJsRoutesExtractor
      * @param array $routingLocales
      */
-    public function __construct($cacheDir, $cachePrefix, $kernelContainerClass, $fosJsRoutesExtractor, $routingLocales)
+    public function __construct($cacheDir, $cachePrefix, $kernelContainerClass, ExposedRoutesExtractorInterface $fosJsRoutesExtractor, $routingLocales)
     {
         $this->cacheDir = $cacheDir;
         $this->cachePrefix = $cachePrefix;
         $this->fs = new Filesystem();
 
-        $cacheFolder = $cacheDir . DIRECTORY_SEPARATOR;
+        $cacheFolder = $this->cacheDir . DIRECTORY_SEPARATOR;
 
         $fosJsRoutingFiles = [];
         foreach ($routingLocales as $locale) {
@@ -49,12 +49,12 @@ class CacheClearer
                 $cacheFolder . 'annotations'
             ],
             'symfony.routing.generator' => [
-                $cacheFolder . $cachePrefix . 'UrlGenerator.php',
-                $cacheFolder . $cachePrefix . 'UrlGenerator.php.meta'
+                $cacheFolder . $this->cachePrefix . 'UrlGenerator.php',
+                $cacheFolder . $this->cachePrefix . 'UrlGenerator.php.meta'
             ],
             'symfony.routing.matcher' => [
-                $cacheFolder . $cachePrefix . 'UrlMatcher.php',
-                $cacheFolder . $cachePrefix . 'UrlMatcher.php.meta'
+                $cacheFolder . $this->cachePrefix . 'UrlMatcher.php',
+                $cacheFolder . $this->cachePrefix . 'UrlMatcher.php.meta'
             ],
             'symfony.routing.fosjs' => $fosJsRoutingFiles,
             'symfony.config' => [

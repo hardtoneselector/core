@@ -11,7 +11,6 @@
 
 namespace Zikula\AdminModule\Controller;
 
-use Zikula\AdminModule\Entity\AdminCategoryEntity;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Method;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
@@ -21,6 +20,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+use Zikula\AdminModule\Entity\AdminCategoryEntity;
 use Zikula\AdminModule\Form\Type\CreateCategoryType;
 use Zikula\AdminModule\Form\Type\DeleteCategoryType;
 use Zikula\AdminModule\Form\Type\EditCategoryType;
@@ -60,7 +60,7 @@ class AdminController extends AbstractController
      * @Route("/categories/{startnum}", requirements={"startnum" = "\d+"})
      * @Method("GET")
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaAdminModule:Admin:view.html.twig")
      *
      * @param integer $startnum
      *
@@ -102,7 +102,7 @@ class AdminController extends AbstractController
      *
      * @Route("/newcategory")
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaAdminModule:Admin:newcat.html.twig")
      *
      * @param Request $request
      *
@@ -147,7 +147,7 @@ class AdminController extends AbstractController
      *
      * @Route("/modifycategory/{cid}", requirements={"cid" = "^[1-9]\d*$"})
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaAdminModule:Admin:modify.html.twig")
      *
      * @param Request $request
      *
@@ -193,7 +193,7 @@ class AdminController extends AbstractController
      *
      * @Route("/deletecategory/{cid}", requirements={"cid" = "^[1-9]\d*$"})
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaAdminModule:Admin:delete.html.twig")
      *
      * @param Request $request
      * @param AdminCategoryEntity $category
@@ -234,7 +234,7 @@ class AdminController extends AbstractController
      * @Route("/panel/{acid}", requirements={"acid" = "^[1-9]\d*$"})
      * @Method("GET")
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaAdminModule:Admin:adminpanel.html.twig")
      *
      * @param Request $request
      * @param integer $acid
@@ -249,7 +249,7 @@ class AdminController extends AbstractController
             }
         }
 
-        if (!$this->getVar('ignoreinstallercheck') && $this->get('kernel')->getEnvironment() == 'dev') {
+        if (!$this->getVar('ignoreinstallercheck') && 'dev' == $this->get('kernel')->getEnvironment()) {
             // check if the Zikula Recovery Console exists
             $zrcExists = file_exists('zrc.php');
             // check if upgrade scripts exist
@@ -309,7 +309,6 @@ class AdminController extends AbstractController
         // get admin capable modules
         $adminModules = $this->get('zikula_extensions_module.api.capability')->getExtensionsCapableOf('admin');
         $adminLinks = [];
-        $baseUrl = $request->getBasePath() . '/';
         foreach ($adminModules as $adminModule) {
             if (!$this->hasPermission($adminModule['name'] . '::', 'ANY', ACCESS_EDIT)) {
                 continue;
@@ -330,11 +329,11 @@ class AdminController extends AbstractController
 
             if ($catid == $acid || (false === $catid && $acid == $this->getVar('defaultcategory'))) {
                 $menuText = '';
-                if ($displayNameType == 1) {
+                if (1 == $displayNameType) {
                     $menuText = $adminModule['displayname'];
-                } elseif ($displayNameType == 2) {
+                } elseif (2 == $displayNameType) {
                     $menuText = $adminModule['name'];
-                } elseif ($displayNameType == 3) {
+                } elseif (3 == $displayNameType) {
                     $menuText = $adminModule['displayname'] . ' (' . $adminModule['name'] . ')';
                 }
 
@@ -360,7 +359,7 @@ class AdminController extends AbstractController
                 ];
             }
         }
-        usort($adminLinks, 'Zikula\AdminModule\Controller\AdminController::_sortAdminModsByOrder');
+        usort($adminLinks, 'Zikula\AdminModule\Controller\AdminController::sortAdminModsByOrder');
         $templateParameters['adminLinks'] = $adminLinks;
 
         return $templateParameters;
@@ -439,7 +438,7 @@ class AdminController extends AbstractController
         }
 
         foreach ($adminLinks as &$item) {
-            usort($item, 'Zikula\AdminModule\Controller\AdminController::_sortAdminModsByOrder');
+            usort($item, 'Zikula\AdminModule\Controller\AdminController::sortAdminModsByOrder');
         }
 
         $menuOptions = [];
@@ -515,7 +514,7 @@ class AdminController extends AbstractController
      *
      * @Route("/help")
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaAdminModule:Admin:help.html.twig")
      *
      * @return Response symfony response object
      *
@@ -538,7 +537,7 @@ class AdminController extends AbstractController
      *
      * @return int < 0 if module a should be ordered before module b > 0 otherwise
      */
-    public static function _sortAdminModsByOrder($a, $b)
+    private static function sortAdminModsByOrder($a, $b)
     {
         if ((int)$a['order'] == (int)$b['order']) {
             return strcmp($a['moduleName'], $b['moduleName']);

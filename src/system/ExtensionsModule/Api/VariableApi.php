@@ -117,7 +117,7 @@ class VariableApi implements VariableApiInterface
      */
     public function localizeVariables($lang)
     {
-        $items = ['sitename', 'slogan', 'metakeywords', 'defaultpagetitle', 'defaultmetadescription'];
+        $items = ['sitename', 'slogan', 'defaultpagetitle', 'defaultmetadescription'];
         foreach ($items as $item) {
             if (isset($this->variables[self::CONFIG][$item . '_en'])) {
                 $this->variables[self::CONFIG][$item] = !empty($this->variables[self::CONFIG][$item . '_' . $lang]) ? $this->variables[self::CONFIG][$item . '_' . $lang] : $this->variables[self::CONFIG][$item . '_en'];
@@ -193,12 +193,12 @@ class VariableApi implements VariableApiInterface
         if (!$this->isInitialized) {
             $this->initialize();
         }
-        if ($extensionName == self::CONFIG && in_array($variableName, $this->protectedSystemVars)) {
+        if (self::CONFIG == $extensionName && in_array($variableName, $this->protectedSystemVars)) {
             return false;
         }
 
         $entities = $this->repository->findBy(['modname' => $extensionName, 'name' => $variableName]);
-        if (count($entities) > 1 || count($entities) == 0) {
+        if (count($entities) > 1 || 0 == count($entities)) {
             foreach ($entities as $entity) {
                 // possible duplicates exist. remove all (refs #2385)
                 $this->repository->remove($entity);

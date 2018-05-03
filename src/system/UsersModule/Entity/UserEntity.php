@@ -13,6 +13,7 @@ namespace Zikula\UsersModule\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
+use Doctrine\ORM\PersistentCollection;
 use Symfony\Component\Validator\Constraints as Assert;
 use Zikula\Core\Doctrine\EntityAccess;
 use Zikula\GroupsModule\Entity\GroupEntity;
@@ -272,7 +273,7 @@ class UserEntity extends EntityAccess
     /**
      * get the approved date of the user
      *
-     * @return \Datetime the user's approved date
+     * @return \DateTime the user's approved date
      */
     public function getApproved_Date()
     {
@@ -282,7 +283,7 @@ class UserEntity extends EntityAccess
     /**
      * set the approved date for the user
      *
-     * @param \Datetime $approved_date the user's approved date
+     * @param \DateTime $approved_date the user's approved date
      */
     public function setApproved_Date($approved_date)
     {
@@ -319,13 +320,13 @@ class UserEntity extends EntityAccess
      */
     public function isApproved()
     {
-        return $this->approved_by != 0;
+        return 0 != $this->approved_by;
     }
 
     /**
      * get the regdate of the user
      *
-     * @return \Datetime the user's regdate
+     * @return \DateTime the user's regdate
      */
     public function getUser_Regdate()
     {
@@ -335,7 +336,7 @@ class UserEntity extends EntityAccess
     /**
      * set the regdate for the user
      *
-     * @param \Datetime $user_regdate the user's regdate
+     * @param \DateTime $user_regdate the user's regdate
      */
     public function setUser_Regdate($user_regdate)
     {
@@ -350,7 +351,7 @@ class UserEntity extends EntityAccess
     /**
      * get the last login of the user
      *
-     * @return \Datetime the user's last login
+     * @return \DateTime the user's last login
      */
     public function getLastlogin()
     {
@@ -360,7 +361,7 @@ class UserEntity extends EntityAccess
     /**
      * set the last login for the user
      *
-     * @param \Datetime $lastlogin the user's last login
+     * @param \DateTime $lastlogin the user's last login
      */
     public function setLastlogin($lastlogin)
     {
@@ -415,7 +416,7 @@ class UserEntity extends EntityAccess
     /**
      * get the attributes of the user
      *
-     * @return ArrayCollection UserAttributeEntity[] of the user's attributes
+     * @return PersistentCollection|ArrayCollection UserAttributeEntity[] of the user's attributes
      */
     public function getAttributes()
     {
@@ -424,15 +425,15 @@ class UserEntity extends EntityAccess
 
     public function getAttributeValue($name)
     {
-        return $this->getAttributes()->get($name)->getValue();
+        return $this->getAttributes()->offsetExists($name) ? $this->getAttributes()->get($name)->getValue() : '';
     }
 
     /**
      * set the attributes for the user
      *
-     * @param UserAttributeEntity $attributes the attributes for the user
+     * @param ArrayCollection $attributes the attributes for the user
      */
-    public function setAttributes($attributes)
+    public function setAttributes(ArrayCollection $attributes)
     {
         $this->attributes = $attributes;
     }
@@ -481,6 +482,11 @@ class UserEntity extends EntityAccess
         return $this->groups;
     }
 
+    /**
+     * set the groups for the user
+     *
+     * @param ArrayCollection $groups the groups for the user
+     */
     public function setGroups(ArrayCollection $groups)
     {
         $this->groups = $groups;

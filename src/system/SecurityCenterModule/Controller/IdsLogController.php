@@ -22,9 +22,9 @@ use Zikula\Bundle\FormExtensionBundle\Form\Type\DeletionType;
 use Zikula\Component\SortableColumns\Column;
 use Zikula\Component\SortableColumns\SortableColumns;
 use Zikula\Core\Controller\AbstractController;
+use Zikula\Core\Response\PlainResponse;
 use Zikula\SecurityCenterModule\Form\Type\IdsLogExportType;
 use Zikula\SecurityCenterModule\Form\Type\IdsLogFilterType;
-use Zikula\Core\Response\PlainResponse;
 use Zikula\ThemeModule\Engine\Annotation\Theme;
 
 /**
@@ -36,7 +36,7 @@ class IdsLogController extends AbstractController
     /**
      * @Route("/view")
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaSecurityCenterModule:IdsLog:view.html.twig")
      *
      * Function to view ids log events.
      *
@@ -135,7 +135,7 @@ class IdsLogController extends AbstractController
     /**
      * @Route("/export")
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaSecurityCenterModule:IdsLog:export.html.twig")
      *
      * Export ids log.
      *
@@ -161,11 +161,11 @@ class IdsLogController extends AbstractController
                 $formData = $form->getData();
 
                 // export the titles ?
-                $exportTitles = isset($formData['titles']) && $formData['titles'] == 1 ? true : false;
+                $exportTitles = isset($formData['titles']) && 1 == $formData['titles'] ? true : false;
 
                 // name of the exported file
                 $exportFile = isset($formData['file']) ? $formData['file'] : null;
-                if (is_null($exportFile) || $exportFile == '') {
+                if (is_null($exportFile) || '' == $exportFile) {
                     $exportFile = 'idslog.csv';
                 }
                 if (!strrpos($exportFile, '.csv')) {
@@ -174,7 +174,7 @@ class IdsLogController extends AbstractController
 
                 // delimeter
                 $delimiter = isset($formData['delimiter']) ? $formData['delimiter'] : null;
-                if (is_null($delimiter) || $delimiter == '') {
+                if (is_null($delimiter) || '' == $delimiter) {
                     $delimiter = 1;
                 }
                 switch ($delimiter) {
@@ -253,7 +253,7 @@ class IdsLogController extends AbstractController
     /**
      * @Route("/purge")
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaSecurityCenterModule:IdsLog:purge.html.twig")
      *
      * Purge ids log.
      *
@@ -274,8 +274,6 @@ class IdsLogController extends AbstractController
 
         if ($form->handleRequest($request)->isValid()) {
             if ($form->get('delete')->isClicked()) {
-                $formData = $form->getData();
-
                 // delete all entries
                 $this->get('zikula_securitycenter_module.intrusion_repository')->truncateTable();
 

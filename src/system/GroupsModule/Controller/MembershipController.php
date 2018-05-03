@@ -38,7 +38,7 @@ class MembershipController extends AbstractController
     /**
      * @Route("/list/{gid}/{letter}/{startNum}", requirements={"gid" = "^[1-9]\d*$", "letter" = "[a-zA-Z]|\*", "startNum" = "\d+"})
      * @Method("GET")
-     * @Template
+     * @Template("ZikulaGroupsModule:Membership:list.html.twig")
      *
      * Display all members of a group to a user
      *
@@ -73,7 +73,7 @@ class MembershipController extends AbstractController
      * @Route("/admin/list/{gid}/{letter}/{startNum}", requirements={"gid" = "^[1-9]\d*$", "letter" = "[a-zA-Z]|\*", "startNum" = "\d+"})
      * @Method("GET")
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaGroupsModule:Membership:adminList.html.twig")
      *
      * Display all members of a group to an admin
      *
@@ -146,12 +146,13 @@ class MembershipController extends AbstractController
         }
         /** @var UserEntity $userEntity */
         $userEntity = $this->get('zikula_users_module.user_repository')->find($currentUserApi->get('uid'));
-        if (($group->getGtype() == CommonHelper::GTYPE_PRIVATE)
-            || ($group->getGtype() == CommonHelper::GTYPE_CORE)
-            || ($group->getState() == CommonHelper::STATE_CLOSED)
-            || ($group->getNbumax() > 0 && $group->getUsers()->count() > $group->getNbumax())
-            || ($group->getUsers()->contains($userEntity))) {
-            $this->addFlash('error', $this->__('Cannot join the requested group')); // @todo more specific info would be better
+        $groupTypeIsPrivate = CommonHelper::GTYPE_PRIVATE == $group->getGtype();
+        $groupTypeIsCore = CommonHelper::GTYPE_CORE == $group->getGtype();
+        $groupStateIsClosed = CommonHelper::STATE_CLOSED == $group->getState();
+        $groupCountIsLimit = 0 < $group->getNbumax() && $group->getUsers()->count() > $group->getNbumax();
+        $alreadyGroupMember = $group->getUsers()->contains($userEntity);
+        if ($groupTypeIsPrivate || $groupTypeIsCore || $groupStateIsClosed || $groupCountIsLimit || $alreadyGroupMember) {
+            $this->addFlash('error', $this->getSpecificGroupMessage($groupTypeIsPrivate, $groupTypeIsCore, $groupStateIsClosed, $groupCountIsLimit, $alreadyGroupMember));
         } else {
             $userEntity->addGroup($group);
             $this->get('doctrine')->getManager()->flush();
@@ -167,7 +168,7 @@ class MembershipController extends AbstractController
     /**
      * @Route("/admin/remove/{gid}/{uid}", requirements={"gid" = "^[1-9]\d*$", "uid" = "^[1-9]\d*$"})
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaGroupsModule:Membership:remove.html.twig")
      *
      * Remove a user from a group.
      *
@@ -186,7 +187,7 @@ class MembershipController extends AbstractController
         if ($gid < 1 || $uid < 1) {
             throw new \InvalidArgumentException($this->__('Invalid Group ID or User ID.'));
         }
-        if (!$this->hasPermission('ZikulaGroupsModule::', $gid.'::', ACCESS_EDIT)) {
+        if (!$this->hasPermission('ZikulaGroupsModule::', $gid . '::', ACCESS_EDIT)) {
             throw new AccessDeniedException();
         }
         $group = $this->get('zikula_groups_module.group_repository')->find($gid);
@@ -283,5 +284,28 @@ class MembershipController extends AbstractController
             'gid' => $request->get('gid'),
             'csrfToken' => $request->get('csrfToken')
         ], new PlainResponse());
+    }
+
+    private function getSpecificGroupMessage($groupTypeIsPrivate, $groupTypeIsCore, $groupStateIsClosed, $groupCountIsLimit, $alreadyGroupMember)
+    {
+        $messages = [];
+        $messages[] = $this->__('Sorry!, You cannot apply to join the requested group');
+        if ($groupTypeIsPrivate) {
+            $messages[] = $this->__('This group is a private group');
+        }
+        if ($groupTypeIsCore) {
+            $messages[] = $this->__('This group is a core-only group');
+        }
+        if ($groupStateIsClosed) {
+            $messages[] = $this->__('This group is closed.');
+        }
+        if ($groupCountIsLimit) {
+            $messages[] = $this->__('This group is has reached its membership limit.');
+        }
+        if ($alreadyGroupMember) {
+            $messages[] = $this->__('You are already a member of this group.');
+        }
+
+        return implode('<br>', $messages);
     }
 }

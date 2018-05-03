@@ -18,6 +18,7 @@ use Zikula\Core\Event\GenericEvent;
 class LinkContainerCollector
 {
     private $linkContainers;
+
     private $eventDispatcher;
 
     public function __construct(EventDispatcherInterface $dispatcher)
@@ -31,6 +32,10 @@ class LinkContainerCollector
         $this->linkContainers[$linkContainer->getBundleName()] = $linkContainer;
     }
 
+    /**
+     * @param string $containerName
+     * @param string $type
+     */
     public function getLinks($containerName, $type = LinkContainerInterface::TYPE_ADMIN)
     {
         $links = [];

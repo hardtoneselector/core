@@ -24,6 +24,7 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Callback;
 use Symfony\Component\Validator\Constraints\Email;
+use Symfony\Component\Validator\Constraints\Regex;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 use Zikula\Common\Translator\TranslatorInterface;
 
@@ -45,15 +46,15 @@ class MainSettingsType extends AbstractType
         $this->translator = $options['translator'];
 
         $spaceReplaceCallbackTransformer = new CallbackTransformer(
-            function ($originalDescription) {
+            function($originalDescription) {
                 return $originalDescription;
             },
-            function ($submittedDescription) {
+            function($submittedDescription) {
                 return mb_ereg_replace(' ', '', $submittedDescription);
             }
         );
         $pageTitleLocalizationTransformer = new CallbackTransformer(
-            function ($originalPageTitle) {
+            function($originalPageTitle) {
                 $originalPageTitle = empty($originalPageTitle) ? '%pagetitle%' : $originalPageTitle;
                 $originalPageTitle = str_replace('%pagetitle%', $this->translator->__('%pagetitle%'), $originalPageTitle);
                 $originalPageTitle = str_replace('%sitename%', $this->translator->__('%sitename%'), $originalPageTitle);
@@ -61,7 +62,7 @@ class MainSettingsType extends AbstractType
 
                 return $originalPageTitle;
             },
-            function ($submittedPageTitle) {
+            function($submittedPageTitle) {
                 $submittedPageTitle = str_replace($this->translator->__('%pagetitle%'), '%pagetitle%', $submittedPageTitle);
                 $submittedPageTitle = str_replace($this->translator->__('%sitename%'), '%sitename%', $submittedPageTitle);
                 $submittedPageTitle = str_replace($this->translator->__('%modulename%'), '%modulename%', $submittedPageTitle);
@@ -97,31 +98,16 @@ class MainSettingsType extends AbstractType
             ])
             ->add('startController', TextType::class, [
                 'label' => $this->translator->__('Start Controller'),
-                'required' => false
+                'required' => false,
+                'help' => $this->translator->__('MyModuleName:Controller:method'),
+                'constraints' => [
+                    new Regex('/\w+:\w+:\w+/')
+                ]
             ])
             ->add('startargs', TextType::class, [
                 'label' => $this->translator->__('Start function arguments'),
                 'required' => false,
                 'help' => $this->translator->__('Separate with & for example:') . ' <code>foo=2&bar=5</code>'
-            ])
-            ->add('entrypoint', TextType::class, [
-                'label' => $this->translator->__('Site entry point (front controller)'),
-                'constraints' => new Callback([
-                    'callback' => function ($data, ExecutionContextInterface $context) {
-                        $falseEntryPoints = ['admin.php', 'ajax.php', 'user.php', 'mo2json.php', 'jcss.php'];
-                        $entryPointExt = pathinfo($data, PATHINFO_EXTENSION);
-                        if (in_array($data, $falseEntryPoints) || strtolower($entryPointExt) != 'php') {
-                            $context->addViolation($this->translator->__('Error! You entered an invalid entry point.'));
-                        }
-                        if (!file_exists($data)) {
-                            $context->addViolation($this->translator->__('Error! The file was not found in the Zikula root directory.'));
-                        }
-                    }
-                ])
-            ])
-            ->add('shorturlsstripentrypoint', CheckboxType::class, [
-                'label' => $this->translator->__('Strip entry point (front controller) from URLs'),
-                'required' => false
             ])
             ->add('useCompression', CheckboxType::class, [
                 'label' => $this->translator->__('Activate compression'),
@@ -148,7 +134,7 @@ class MainSettingsType extends AbstractType
                 $builder->create('permasearch', TextType::class, [
                     'label' => $this->translator->__('List to search for'),
                     'constraints' => new Callback([
-                        'callback' => function ($data, ExecutionContextInterface $context) {
+                        'callback' => function($data, ExecutionContextInterface $context) {
                             if (mb_ereg(',$', $data)) {
                                 $context->addViolation($this->translator->__('Error! In your permalink settings, strings cannot be terminated with a comma.'));
                             }
@@ -215,8 +201,7 @@ class MainSettingsType extends AbstractType
             'messageModules' => [],
             'languages' => [],
             'constraints' => [
-                new Callback(['callback' => [$this, 'validatePermalinkSettings']]),
-                new Callback(['callback' => [$this, 'validateStartpageSettings']])
+                new Callback(['callback' => [$this, 'validatePermalinkSettings']])
             ]
         ]);
     }
@@ -229,35 +214,20 @@ class MainSettingsType extends AbstractType
      */
     public function validatePermalinkSettings($data, ExecutionContextInterface $context)
     {
-        if (mb_strlen($data['permasearch']) == 0) {
+        if (0 == mb_strlen($data['permasearch'])) {
             $permasearchCount = 0;
         } else {
-            $permasearchCount = (!mb_ereg(',', $data['permasearch']) && mb_strlen($data['permasearch'] > 0) ? 1 : count(explode(',', $data['permasearch'])));
+            $permasearchCount = (!mb_ereg(',', $data['permasearch']) && mb_strlen($data['permasearch']) > 0) ? 1 : count(explode(',', $data['permasearch']));
         }
 
-        if (mb_strlen($data['permareplace']) == 0) {
+        if (0 == mb_strlen($data['permareplace'])) {
             $permareplaceCount = 0;
         } else {
-            $permareplaceCount = (!mb_ereg(',', $data['permareplace']) && mb_strlen($data['permareplace'] > 0) ? 1 : count(explode(',', $data['permareplace'])));
+            $permareplaceCount = (!mb_ereg(',', $data['permareplace']) && mb_strlen($data['permareplace']) > 0) ? 1 : count(explode(',', $data['permareplace']));
         }
 
         if ($permareplaceCount !== $permasearchCount) {
             $context->addViolation($this->translator->__('Error! In your permalink settings, the search list and the replacement list for permalink cleansing have a different number of comma-separated elements. If you have 3 elements in the search list then there must be 3 elements in the replacement list.'));
-        }
-    }
-
-    /**
-     * Validate startpage settings.
-     *
-     * @param $data
-     * @param ExecutionContextInterface $context
-     */
-    public function validateStartpageSettings($data, ExecutionContextInterface $context)
-    {
-        if (!empty($data['startpage'])) {
-            if (empty($data['starttype']) || empty($data['startfunc'])) {
-                $context->addViolation($this->translator->__('Error! When setting a startpage, starttype and startfunc are required fields.'));
-            }
         }
     }
 }

@@ -20,8 +20,8 @@ use Zikula\Core\Event\GenericEvent;
 use Zikula\ExtensionsModule\Api\VariableApi;
 use Zikula\ThemeModule\Engine\Annotation\Theme;
 use Zikula\UsersModule\Constant as UsersConstant;
-use Zikula\UsersModule\Form\ConfigType\AuthenticationMethodsType;
-use Zikula\UsersModule\Form\ConfigType\ConfigType;
+use Zikula\UsersModule\Form\Type\ConfigType\AuthenticationMethodsType;
+use Zikula\UsersModule\Form\Type\ConfigType\ConfigType;
 use Zikula\UsersModule\UserEvents;
 
 /**
@@ -32,7 +32,7 @@ class ConfigController extends AbstractController
     /**
      * @Route("/config")
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaUsersModule:Config:config.html.twig")
      * @param Request $request
      * @return array
      */
@@ -67,7 +67,7 @@ class ConfigController extends AbstractController
     /**
      * @Route("/config/authentication-methods")
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaUsersModule:Config:authenticationMethods.html.twig")
      * @param Request $request
      * @return array
      */

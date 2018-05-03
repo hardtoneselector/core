@@ -11,9 +11,9 @@
 
 namespace Zikula\SecurityCenterModule;
 
-use Zikula\ExtensionsModule\Api\VariableApi;
 use Zikula\Bundle\CoreBundle\HttpKernel\ZikulaKernel;
 use Zikula\Core\AbstractExtensionInstaller;
+use Zikula\ExtensionsModule\Api\VariableApi;
 use Zikula\SecurityCenterModule\Api\ApiInterface\HtmlFilterApiInterface;
 
 /**
@@ -56,7 +56,7 @@ class SecurityCenterModuleInstaller extends AbstractExtensionInstaller
         $this->setSystemVar('sessionstoretofile', Constant::SESSION_STORAGE_FILE);
         $this->setSystemVar('sessionsavepath', '');
         $this->setSystemVar('gc_probability', 100);
-        $this->setSystemVar('sessioncsrftokenonetime', 1);  // 1 means use same token for entire session
+        $this->setSystemVar('sessioncsrftokenonetime', 1); // 1 means use same token for entire session
         $this->setSystemVar('sessionrandregenerate', 1);
         $this->setSystemVar('sessionregenerate', 1);
         $this->setSystemVar('sessionregeneratefreq', 10);
@@ -78,13 +78,13 @@ class SecurityCenterModuleInstaller extends AbstractExtensionInstaller
         $this->setSystemVar('useids', 0);
         $this->setSystemVar('idsmail', 0);
         $this->setSystemVar('idsrulepath', 'system/SecurityCenterModule/Resources/config/phpids_zikula_default.xml');
-        $this->setSystemVar('idssoftblock', 1);                // do not block requests, but warn for debugging
-        $this->setSystemVar('idsfilter', 'xml');               // filter type
-        $this->setSystemVar('idsimpactthresholdone', 1);       // db logging
-        $this->setSystemVar('idsimpactthresholdtwo', 10);      // mail admin
-        $this->setSystemVar('idsimpactthresholdthree', 25);    // block request
-        $this->setSystemVar('idsimpactthresholdfour', 75);     // kick user, destroy session
-        $this->setSystemVar('idsimpactmode', 1);               // per request per default
+        $this->setSystemVar('idssoftblock', 1); // do not block requests, but warn for debugging
+        $this->setSystemVar('idsfilter', 'xml'); // filter type
+        $this->setSystemVar('idsimpactthresholdone', 1); // db logging
+        $this->setSystemVar('idsimpactthresholdtwo', 10); // mail admin
+        $this->setSystemVar('idsimpactthresholdthree', 25); // block request
+        $this->setSystemVar('idsimpactthresholdfour', 75); // kick user, destroy session
+        $this->setSystemVar('idsimpactmode', 1); // per request per default
         $this->setSystemVar('idshtmlfields', ['POST.__wysiwyg']);
         $this->setSystemVar('idsjsonfields', ['POST.__jsondata']);
         $this->setSystemVar('idsexceptions', [
@@ -245,9 +245,9 @@ class SecurityCenterModuleInstaller extends AbstractExtensionInstaller
                 // set the session information in /src/app/config/dynamic/generated.yml
                 $configDumper = $this->container->get('zikula.dynamic_config_dumper');
                 $sessionStoreToFile = $this->container->get('zikula_extensions_module.api.variable')->getSystemVar('sessionstoretofile', Constant::SESSION_STORAGE_DATABASE);
-                $sessionHandlerId = $sessionStoreToFile == Constant::SESSION_STORAGE_FILE ? 'session.handler.native_file' : 'zikula_core.bridge.http_foundation.doctrine_session_handler';
+                $sessionHandlerId = Constant::SESSION_STORAGE_FILE == $sessionStoreToFile ? 'session.handler.native_file' : 'zikula_core.bridge.http_foundation.doctrine_session_handler';
                 $configDumper->setParameter('zikula.session.handler_id', $sessionHandlerId);
-                $sessionStorageId = $sessionStoreToFile == Constant::SESSION_STORAGE_FILE ? 'zikula_core.bridge.http_foundation.zikula_session_storage_file' : 'zikula_core.bridge.http_foundation.zikula_session_storage_doctrine';
+                $sessionStorageId = Constant::SESSION_STORAGE_FILE == $sessionStoreToFile ? 'zikula_core.bridge.http_foundation.zikula_session_storage_file' : 'zikula_core.bridge.http_foundation.zikula_session_storage_doctrine';
                 $configDumper->setParameter('zikula.session.storage_id', $sessionStorageId); // Symfony default is 'session.storage.native'
                 $sessionSavePath = $this->container->get('zikula_extensions_module.api.variable')->getSystemVar('sessionsavepath', '');
                 $zikulaSessionSavePath = empty($sessionSavePath) ? '%kernel.cache_dir%/sessions' : $sessionSavePath;
@@ -271,6 +271,9 @@ class SecurityCenterModuleInstaller extends AbstractExtensionInstaller
         return false;
     }
 
+    /**
+     * @param string $name
+     */
     private function setSystemVar($name, $value = '')
     {
         return $this->container->get('zikula_extensions_module.api.variable')->set(VariableApi::CONFIG, $name, $value);

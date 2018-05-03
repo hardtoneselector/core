@@ -37,12 +37,6 @@ class ExtensionEntity extends EntityAccess
     private $name;
 
     /**
-     * @ORM\Column(type="string", length=64)
-     * @var string
-     */
-//    private $namespace;
-
-    /**
      * @ORM\Column(type="integer", length=2)
      * @var integer
      */
@@ -65,12 +59,6 @@ class ExtensionEntity extends EntityAccess
      * @var string
      */
     private $description;
-
-    /**
-     * @ORM\Column(type="string", length=255)
-     * @var string
-     */
-    private $directory;
 
     /**
      * @ORM\Column(type="string", length=10)
@@ -128,16 +116,6 @@ class ExtensionEntity extends EntityAccess
         $this->name = $name;
     }
 
-//    public function getNamespace()
-//    {
-//        return $this->namespace;
-//    }
-//
-//    public function setNamespace($namespace)
-//    {
-//        $this->namespace = $namespace;
-//    }
-
     public function getType()
     {
         return $this->type;
@@ -176,16 +154,6 @@ class ExtensionEntity extends EntityAccess
     public function setDescription($description)
     {
         $this->description = $description;
-    }
-
-    public function getDirectory()
-    {
-        return $this->directory;
-    }
-
-    public function setDirectory($directory)
-    {
-        $this->directory = $directory;
     }
 
     public function getVersion()
@@ -250,7 +218,7 @@ class ExtensionEntity extends EntityAccess
 
     public function setCorecompatibility($coreCompatibility)
     {
-        // @todo temporarily use core_min to store the string - rename and remove core_max
+        // temporarily use core_min to store the string - rename and remove core_max refs #3649
         $this->core_min = $coreCompatibility;
     }
 }

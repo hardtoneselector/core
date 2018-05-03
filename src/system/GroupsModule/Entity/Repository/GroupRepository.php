@@ -136,7 +136,7 @@ class GroupRepository extends EntityRepository implements GroupRepositoryInterfa
         $groups[PermissionApi::ALL_GROUPS] = $this->translator->__('All groups');
         $groups[PermissionApi::UNREGISTERED_USER_GROUP] = $this->translator->__('Unregistered');
 
-        $entities = parent::findAll();
+        $entities = $this->findAll();
         foreach ($entities as $group) {
             $groups[$group->getGid()] = $group->getName();
         }
@@ -151,7 +151,7 @@ class GroupRepository extends EntityRepository implements GroupRepositoryInterfa
      */
     public function getGroupByName($name = '', $excludedGroupId = 0)
     {
-        if ($name == '') {
+        if ('' == $name) {
             return null;
         }
 

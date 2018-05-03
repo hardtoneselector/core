@@ -137,12 +137,12 @@ class IntrusionRepository extends EntityRepository
     public function getDistinctFieldValues($fieldName)
     {
         if (!in_array($fieldName, ['uid', 'name', 'tag', 'value', 'page', 'ip', 'impact'])) {
-            throw new InvalidArgumentException(__('Invalid field name received for distinct values selection!'));
+            throw new InvalidArgumentException('Invalid field name received for distinct values selection!');
         }
 
         $qb = $this->createQueryBuilder('tbl');
 
-        if ($fieldName == 'uid') {
+        if ('uid' == $fieldName) {
             $qb->select('DISTINCT(u.' . $fieldName . ')')
                ->from('ZikulaUsersModule:UserEntity', 'u')
                ->where($qb->expr()->eq('tbl.user', 'u.uid'))

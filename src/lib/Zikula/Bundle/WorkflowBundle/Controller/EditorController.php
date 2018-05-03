@@ -15,8 +15,8 @@ use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Zikula\ThemeModule\Engine\Annotation\Theme;
 
 /**
@@ -33,7 +33,7 @@ class EditorController extends Controller
      *        methods = {"GET"}
      * )
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaWorkflowBundle:Editor:index.html.twig")
      *
      * @param Request $request Current request instance
      *
@@ -85,9 +85,15 @@ class EditorController extends Controller
             $workflowsProperty = $reflection->getProperty('workflows');
             $workflowsProperty->setAccessible(true);
             $workflows = $workflowsProperty->getValue($registry);
-            foreach ($workflows as list($aWorkflow, $className)) {
+            foreach ($workflows as list($aWorkflow, $workflowClass)) {
                 if ($aWorkflow->getName() == $workflow->getName()) {
-                    $supportedEntityClassNames[] = $className;
+                    if ($workflowClass instanceof \Symfony\Component\Workflow\SupportStrategy\ClassInstanceSupportStrategy) {
+                        $reflection = new \ReflectionClass(get_class($workflowClass));
+                        $workflowClassNameProperty = $reflection->getProperty('className');
+                        $workflowClassNameProperty->setAccessible(true);
+                        $workflowClass = $workflowClassNameProperty->getValue($workflowClass);
+                    }
+                    $supportedEntityClassNames[] = $workflowClass;
                 }
             }
         } catch (\ReflectionException $e) {

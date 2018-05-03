@@ -20,6 +20,7 @@ use Zikula\Bundle\CoreBundle\Bundle\AbstractCoreModule;
 use Zikula\Bundle\CoreBundle\HttpKernel\ZikulaKernel;
 use Zikula\Bundle\CoreInstallerBundle\Helper\ControllerHelper;
 use Zikula\Common\Translator\TranslatorInterface;
+use Zikula\Core\Event\GenericEvent;
 use Zikula\Core\Response\PlainResponse;
 use Zikula\ExtensionsModule\Constant;
 use Zikula\ExtensionsModule\Entity\ExtensionEntity;
@@ -75,7 +76,7 @@ abstract class AbstractController
     }
 
     /**
-     * @param $moduleName
+     * @param string $moduleName
      * @return bool
      */
     protected function installModule($moduleName)
@@ -119,7 +120,7 @@ abstract class AbstractController
     /**
      * Set an admin category for a module or set to default
      * @param $moduleName
-     * @param $translatedCategoryName
+     * @param string $translatedCategoryName
      */
     protected function setModuleCategory($moduleName, $translatedCategoryName)
     {
@@ -193,5 +194,22 @@ abstract class AbstractController
         $response->setContent($this->twig->render($view, $parameters));
 
         return $response;
+    }
+
+    /**
+     * @param $eventName
+     * @param array $args
+     * @return bool
+     */
+    protected function fireEvent($eventName, array $args = [])
+    {
+        $event = new GenericEvent();
+        $event->setArguments($args);
+        $this->container->get('event_dispatcher')->dispatch($eventName, $event);
+        if ($event->isPropagationStopped()) {
+            return false;
+        }
+
+        return true;
     }
 }

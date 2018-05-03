@@ -11,9 +11,9 @@
 
 namespace Zikula\Bundle\CoreInstallerBundle\Controller;
 
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Zikula\Component\Wizard\FormHandlerInterface;
 use Zikula\Component\Wizard\Wizard;
 use Zikula\Component\Wizard\WizardCompleteInterface;
@@ -31,12 +31,12 @@ class InstallerController extends AbstractController
     public function installAction(Request $request, $stage)
     {
         // already installed?
-        if (true === $this->container->getParameter('installed') && $stage != 'complete') {
+        if (true === $this->container->getParameter('installed') && 'complete' != $stage) {
             $stage = 'installed';
         }
 
         // not installed but requesting installed stage?
-        if (false === $this->container->getParameter('installed') && $stage == 'installed') {
+        if (false === $this->container->getParameter('installed') && 'installed' == $stage) {
             $stage = 'notinstalled';
         }
 

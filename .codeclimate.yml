@@ -1,17 +1,21 @@
 engines:
   csslint:
     enabled: true
-  duplication:
-    enabled: true
-    config:
-      languages:
-        javascript:
-        php:
+    checks:
+      overqualified-elements:
+        enabled: false
+      unique-headings:
+        enabled: false
   eslint:
     enabled: true
-    channel: "eslint-3"
     checks:
+      complexity:
+        enabled: false
+      max-statements:
+        enabled: false
       no-alert:
+        enabled: false
+      wrap-iife:
         enabled: false
   fixme:
     enabled: true
@@ -22,12 +26,77 @@ engines:
       - TODO
   markdownlint:
     enabled: true
+    checks:
+      MD009: # trailing spaces
+        enabled: false
+      MD013: # line length
+        enabled: false
   phan:
     enabled: true
+    config:
+      ignore-undeclared: true
+      dead-code-detection: true
+    checks:
+      PhanNonClassMethodCall:
+        enabled: false
+      PhanParamSignatureMismatch:
+        enabled: false
+      PhanTypeMismatchProperty:
+        enabled: false
+      PhanUnreferencedClass:
+        enabled: false
+      PhanUnreferencedMethod:
+        enabled: false
   phpcodesniffer:
     enabled: true
+    checks:
+      Generic Files LineLength TooLong:
+        enabled: false
+      PSR2 ControlStructures SwitchDeclaration TerminatingComment:
+        enabled: false
+      PSR2 Methods MethodDeclaration Underscore:
+        enabled: false
+      Squiz Functions MultiLineFunctionDeclaration SpaceAfterFunction:
+        enabled: false
   phpmd:
     enabled: true
+    checks:
+      CleanCode/BooleanArgumentFlag:
+        enabled: false
+      CleanCode/ElseExpression:
+        enabled: false
+      CleanCode/StaticAccess:
+        enabled: false
+      CyclomaticComplexity:
+        enabled: false
+      Design/CouplingBetweenObjects:
+        enabled: false
+      Design/LongMethod:
+        enabled: false
+      Design/LongParameterList:
+        enabled: false
+      Design/NpathComplexity:
+        enabled: false
+      Design/TooManyFields:
+        enabled: false
+      Design/TooManyPublicMethods:
+        enabled: false
+      Design/WeightedMethodCount:
+        enabled: false
+      ExcessivePublicCount:
+        enabled: false
+      Naming/BooleanGetMethodName:
+        enabled: false
+      Naming/LongVariable:
+        enabled: false
+      Naming/ShortMethodName:
+        enabled: false
+      Naming/ShortVariable:
+        enabled: false
+      UnusedFormalParameter:
+        enabled: false
+      UnusedLocalVariable:
+        enabled: false
 
 ratings:
   paths:
@@ -37,10 +106,8 @@ ratings:
   - "**.php"
 
 exclude_paths:
-- "src/lib/legacy/"
-- "src/javascript/jquery-plugins/"
-- "src/javascript/plugins/"
-- "src/javascript/underscore/"
+- "src/lib/Zikula/Bundle/WorkflowBundle/Resources/public/js/jsPlumb/"
+- "src/themes/BootstrapTheme/Resources/public/css/cerulean.css"
 - "*.min.js"
 - "**/tests/"
 - "**/vendor/"

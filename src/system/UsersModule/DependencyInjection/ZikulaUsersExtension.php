@@ -23,7 +23,7 @@ class ZikulaUsersExtension extends Extension
      */
     public function load(array $configs, ContainerBuilder $container)
     {
-        $loader = new YamlFileLoader($container, new FileLocator(realpath(__DIR__.'/../Resources/config')));
+        $loader = new YamlFileLoader($container, new FileLocator(realpath(__DIR__ . '/../Resources/config')));
 
         $loader->load('services.yml');
         $loader->load('doctrine.yml');
@@ -31,5 +31,6 @@ class ZikulaUsersExtension extends Extension
         $loader->load('validators.yml');
         $loader->load('authentication.yml');
         $loader->load('twig.yml');
+        $loader->load('hooks.yml');
     }
 }

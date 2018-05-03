@@ -34,7 +34,7 @@ class MenuController extends AbstractController
 
     /**
      * @Route("/list")
-     * @Template
+     * @Template("ZikulaMenuModule:Menu:list.html.twig")
      * @Theme("admin")
      * @param Request $request
      * @return array
@@ -46,8 +46,6 @@ class MenuController extends AbstractController
         }
         $repo = $this->get('zikula_menu_module.menu_item_repository');
         $rootNodes = $repo->getRootNodes();
-//        $children = $repo->getChildren();
-//        $childrenHierarchy = $repo->childrenHierarchy();
 
         return [
             'rootNodes' => $rootNodes
@@ -56,7 +54,7 @@ class MenuController extends AbstractController
 
     /**
      * @Route("/view/{id}")
-     * @Template
+     * @Template("ZikulaMenuModule:Menu:view.html.twig")
      * @Theme("admin")
      * @param MenuItemEntity $menuItemEntity
      * @return array
@@ -75,10 +73,10 @@ class MenuController extends AbstractController
             [
                 'decorate' => true,
                 'html' => true,
-                'childOpen' => function ($node) {
+                'childOpen' => function($node) {
                     return '<li class="jstree-open" id="' . $this->domTreeNodePrefix . $node['id'] . '">';
                 },
-                'nodeDecorator' => function ($node) {
+                'nodeDecorator' => function($node) {
                     return '<a href="#">' . $node['title'] . ' (' . $node['id'] . ')</a>';
                 }
             ]
@@ -151,7 +149,7 @@ class MenuController extends AbstractController
 
     /**
      * @Route("/delete/{id}")
-     * @Template
+     * @Template("ZikulaMenuModule:Menu:delete.html.twig")
      * @Theme("admin")
      * @param Request $request
      * @param MenuItemEntity|null $menuItemEntity

@@ -31,7 +31,7 @@ class CssResolver implements ResolverInterface
     private $merger;
 
     /**
-     * @var string
+     * @var bool
      */
     private $combine;
 
@@ -46,7 +46,7 @@ class CssResolver implements ResolverInterface
     {
         $this->bag = $bag;
         $this->merger = $merger;
-        $this->combine = $env == 'prod' && $combine;
+        $this->combine = 'prod' == $env && $combine;
     }
 
     public function compile()
@@ -57,7 +57,7 @@ class CssResolver implements ResolverInterface
         }
         $headers = '';
         foreach ($assets as $asset) {
-            $headers .= '<link rel="stylesheet" href="'.$asset.'" type="text/css">'."\n";
+            $headers .= '<link rel="stylesheet" href="' . $asset . '" type="text/css">' . "\n";
         }
 
         return $headers;

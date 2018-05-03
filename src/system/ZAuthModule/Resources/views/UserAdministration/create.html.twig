@@ -35,11 +35,10 @@
             {{ form_row(form.adminnotification) }}
             {{ form_row(form.usermustverify) }}
         </fieldset>
-        {% set eventData = dispatchEvent(constant('Zikula\\UsersModule\\UserEvents::NEW_FORM')) %}
-        {% for data in eventData %}
-            {{ data|raw }}
+        {% for additional_template in additional_templates %}
+            {{ include(additional_template.0, additional_template.1, ignore_missing = true) }}
         {% endfor %}
-        {{ notifyDisplayHooks(constant('Zikula\\UsersModule\\Container\\HookContainer::EDIT_FORM')) }}
+        {{ notifyDisplayHooks(constant('Zikula\\UsersModule\\HookSubscriber\\UserManagementUiHooksSubscriber::EDIT_FORM')) }}
 
         <div class="form-group">
             <div class="col-sm-offset-3 col-sm-9">
@@ -95,7 +94,7 @@
     <script type="text/javascript">
         (function($) {
             $(document).ready(function() {
-                ZikulaZAuthPassMeter.init(passFirst.attr('id'), '{{ form.vars.id }}_passmeter', {
+                ZikulaZAuthPassMeter.init('{{ form.pass.vars.id }}_first', '{{ form.vars.id }}_passmeter', {
                     username: '{{ form.uname.vars.id }}',
                     minLength: '{{ getModVar('ZikulaZAuthModule', constant('Zikula\\ZAuthModule\\ZAuthConstant::MODVAR_PASSWORD_MINIMUM_LENGTH')) }}'
                 });

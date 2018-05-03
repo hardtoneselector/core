@@ -11,9 +11,9 @@
 
 namespace Zikula\BlocksModule\Block;
 
+use Zikula\BlocksModule\AbstractBlockHandler;
 use Zikula\Common\Collection\Collectible\PendingContentCollectible;
 use Zikula\Common\Collection\Container;
-use Zikula\BlocksModule\AbstractBlockHandler;
 use Zikula\Core\Event\GenericEvent;
 
 /**
@@ -34,7 +34,6 @@ class PendingContentBlock extends AbstractBlockHandler
         $content = [];
         foreach ($pendingCollection as $collection) {
             /** @var \Zikula\Common\Collection\Container $collection */
-            $module = $collection->getName();
             foreach ($collection as $item) {
                 if ($item instanceof PendingContentCollectible) {
                     $link = $this->get('router')->generate($item->getRoute(), $item->getArgs());

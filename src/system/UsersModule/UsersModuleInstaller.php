@@ -49,10 +49,6 @@ class UsersModuleInstaller extends AbstractExtensionInstaller
         $this->setVars($this->getDefaultModvars());
         $this->container->get('zikula_extensions_module.api.variable')->set(VariableApi::CONFIG, 'authenticationMethodsStatus', ['native_uname' => true]);
 
-        // Register hook bundles
-        $this->hookApi->installSubscriberHooks($this->bundle->getMetaData());
-        $this->hookApi->installProviderHooks($this->bundle->getMetaData());
-
         // Initialisation successful
         return true;
     }
@@ -97,7 +93,7 @@ class UsersModuleInstaller extends AbstractExtensionInstaller
                     }
                 }
             case '2.2.2':
-                if ($this->getVar('gravatarimage', null) == 'gravatar.gif') {
+                if ('gravatar.gif' == $this->getVar('gravatarimage', null)) {
                     $this->setVar('gravatarimage', 'gravatar.jpg');
                 }
             case '2.2.3':
@@ -117,7 +113,7 @@ class UsersModuleInstaller extends AbstractExtensionInstaller
                     UsersConstant::MODVAR_LOGIN_DISPLAY_APPROVAL_STATUS
                 ];
                 foreach ($modvarsToConvertToBool as $modvarToConvert) {
-                    $this->setVar($modvarToConvert, (bool) $this->getVar($modvarToConvert));
+                    $this->setVar($modvarToConvert, (bool)$this->getVar($modvarToConvert));
                 }
                 $this->schemaTool->update(['Zikula\UsersModule\Entity\UserEntity']);
                 $this->delVar('login_redirect');
@@ -144,6 +140,9 @@ class UsersModuleInstaller extends AbstractExtensionInstaller
                 $this->delVar('password_reminder_enabled');
                 $this->delVar('password_reminder_mandatory');
             case '3.0.3':
+            case '3.0.4':
+                $this->schemaTool->update([UserEntity::class]);
+            case '3.0.5':
                 // current version
         }
 
@@ -279,18 +278,18 @@ class UsersModuleInstaller extends AbstractExtensionInstaller
         foreach ($migratedModVarNames as $migratedModVarName) {
             $value = $this->getVar($migratedModVarName);
             $this->delVar($migratedModVarName); // removes from UsersModule
-            $migratedModVarName = ($migratedModVarName == 'reg_verifyemail') ? ZAuthConstant::MODVAR_EMAIL_VERIFICATION_REQUIRED : $migratedModVarName;
+            $migratedModVarName = ('reg_verifyemail' == $migratedModVarName) ? ZAuthConstant::MODVAR_EMAIL_VERIFICATION_REQUIRED : $migratedModVarName;
             $value = in_array($migratedModVarName, [
                 ZAuthConstant::MODVAR_EMAIL_VERIFICATION_REQUIRED,
                 ZAuthConstant::MODVAR_PASSWORD_STRENGTH_METER_ENABLED
-            ]) ? (bool) $value : $value;
+            ]) ? (bool)$value : $value;
             $this->container->get('zikula_extensions_module.api.variable')->set('ZikulaZAuthModule', $migratedModVarName, $value);
         }
     }
 
     /**
      * These modvar names used to have UsersConstant values, but have been moved to ZAuthConstant and maintain their actual values.
-     * @return array
+     * @return string[]
      */
     private function getMigratedModVarNames()
     {

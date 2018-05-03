@@ -37,7 +37,7 @@ class ConfigController extends AbstractController
     /**
      * @Route("/config")
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaSecurityCenterModule:Config:config.html.twig")
      *
      * This is a standard function to modify the configuration parameters of the module.
      *
@@ -72,7 +72,7 @@ class ConfigController extends AbstractController
                 $this->setSystemVar('updatecheck', $updateCheck);
 
                 // if update checks are disabled, reset values to force new update check if re-enabled
-                if ($updateCheck == 0) {
+                if (0 == $updateCheck) {
                     $this->setSystemVar('updateversion', ZikulaKernel::VERSION);
                     $this->setSystemVar('updatelastchecked', 0);
                 }
@@ -119,7 +119,7 @@ class ConfigController extends AbstractController
                 // check session path config is writable (if method is being changed to session file storage)
                 $causeLogout = false;
                 $storeTypeCanBeWritten = true;
-                if ($sessionStoreToFile == 1 && !empty($sessionSavePath)) {
+                if (1 == $sessionStoreToFile && !empty($sessionSavePath)) {
                     // fix path on windows systems
                     $sessionSavePath = str_replace('\\', '/', $sessionSavePath);
                     // sanitize the path
@@ -183,15 +183,13 @@ class ConfigController extends AbstractController
                 // set the session information in /src/app/config/dynamic/generated.yml
                 $configDumper = $this->get('zikula.dynamic_config_dumper');
                 $configDumper->setParameter('zikula.session.name', $newSessionName);
-                $sessionHandlerId = $sessionStoreToFile == Constant::SESSION_STORAGE_FILE ? 'session.handler.native_file' : 'zikula_core.bridge.http_foundation.doctrine_session_handler';
+                $sessionHandlerId = Constant::SESSION_STORAGE_FILE == $sessionStoreToFile ? 'session.handler.native_file' : 'zikula_core.bridge.http_foundation.doctrine_session_handler';
                 $configDumper->setParameter('zikula.session.handler_id', $sessionHandlerId);
-                $sessionStorageId = $sessionStoreToFile == Constant::SESSION_STORAGE_FILE ? 'zikula_core.bridge.http_foundation.zikula_session_storage_file' : 'zikula_core.bridge.http_foundation.zikula_session_storage_doctrine';
+                $sessionStorageId = Constant::SESSION_STORAGE_FILE == $sessionStoreToFile ? 'zikula_core.bridge.http_foundation.zikula_session_storage_file' : 'zikula_core.bridge.http_foundation.zikula_session_storage_doctrine';
                 $configDumper->setParameter('zikula.session.storage_id', $sessionStorageId); // Symfony default is 'session.storage.native'
                 $zikulaSessionSavePath = empty($sessionSavePath) ? '%kernel.cache_dir%/sessions' : $sessionSavePath;
                 $configDumper->setParameter('zikula.session.save_path', $zikulaSessionSavePath);
 
-                // set the session name in the current container
-                $this->get('service_container')->setParameter('zikula.session.name', $newSessionName);
                 $this->setSystemVar('sessionname', $newSessionName);
                 $this->setSystemVar('sessionstoretofile', $sessionStoreToFile);
 
@@ -202,7 +200,7 @@ class ConfigController extends AbstractController
                 $this->setSystemVar('useids', $useIds);
 
                 // create tmp directory for PHPIDS
-                if ($useIds == 1) {
+                if (1 == $useIds) {
                     $idsTmpDir = $this->getParameter('kernel.cache_dir') . '/idsTmp';
                     $fs = new Filesystem();
                     if (!$fs->exists($idsTmpDir)) {
@@ -310,7 +308,7 @@ class ConfigController extends AbstractController
     /**
      * @Route("/purifierconfig/{reset}")
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaSecurityCenterModule:Config:purifierconfig.html.twig")
      *
      * HTMLPurifier configuration.
      *
@@ -328,7 +326,7 @@ class ConfigController extends AbstractController
 
         $purifierHelper = $this->get('zikula_security_center_module.helper.purifier_helper');
 
-        if ($request->getMethod() == 'POST') {
+        if ('POST' == $request->getMethod()) {
             // Load HTMLPurifier Classes
             $purifier = $purifierHelper->getPurifier();
 
@@ -430,7 +428,7 @@ class ConfigController extends AbstractController
 
         // load the configuration page
 
-        if (isset($reset) && $reset == 'default') {
+        if (isset($reset) && 'default' == $reset) {
             $purifierConfig = $purifierHelper->getPurifierConfig(['forcedefault' => true]);
             $this->addFlash('status', $this->__('Default values for HTML Purifier were successfully loaded. Please store them using the "Save" button at the bottom of this page'));
         } else {
@@ -472,14 +470,14 @@ class ConfigController extends AbstractController
                 continue;
             }
 
-            if ($namespace == 'Filter') {
+            if ('Filter' == $namespace) {
                 if (
                 // Do not allow Filter.Custom for now. Causing errors.
                 // TODO research why Filter.Custom is causing exceptions and correct.
-                        ($directive == 'Custom')
+                        ('Custom' == $directive)
                         // Do not allow Filter.ExtractStyleBlock* for now. Causing errors.
                         // TODO Filter.ExtractStyleBlock* requires CSSTidy
-                        || (stripos($directive, 'ExtractStyleBlock') !== false)
+                        || (false !== stripos($directive, 'ExtractStyleBlock'))
                 ) {
                     continue;
                 }
@@ -515,10 +513,6 @@ class ConfigController extends AbstractController
                         $directiveRec['value'] = implode(PHP_EOL, $directiveRec['value']);
                         break;
                     case HTMLPurifier_VarParser::HASH:
-//                        $value = '';
-//                        foreach ($directiveRec['value'] as $i => $v) {
-//                            $value .= "{$i}:{$v}" . PHP_EOL;
-//                        }
                         $directiveRec['value'] = json_encode($directiveRec['value']);
                         break;
                     default:
@@ -541,7 +535,7 @@ class ConfigController extends AbstractController
     /**
      * @Route("/allowedhtml")
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaSecurityCenterModule:Config:allowedhtml.html.twig")
      *
      * Display the allowed html form.
      *
@@ -561,7 +555,7 @@ class ConfigController extends AbstractController
 
         $htmlTags = $this->getHtmlTags();
 
-        if ($request->getMethod() == 'POST') {
+        if ('POST' == $request->getMethod()) {
             $htmlEntities = $request->request->getDigits('htmlentities', 0);
             $this->setSystemVar('htmlentities', $htmlEntities);
 
@@ -569,7 +563,7 @@ class ConfigController extends AbstractController
             $allowedHtml = [];
             foreach ($htmlTags as $htmlTag => $usageTag) {
                 $tagVal = (int)$request->request->getDigits('htmlallow' . $htmlTag . 'tag', 0);
-                if ($tagVal != 1 && $tagVal != 2) {
+                if (1 != $tagVal && 2 != $tagVal) {
                     $tagVal = 0;
                 }
                 $allowedHtml[$htmlTag] = $tagVal;
@@ -588,7 +582,7 @@ class ConfigController extends AbstractController
 
         return [
             'htmlEntities' => $variableApi->getSystemVar('htmlentities'),
-            'htmlPurifier' => (bool)($variableApi->getSystemVar('outputfilter') == 1),
+            'htmlPurifier' => (bool)(1 == $variableApi->getSystemVar('outputfilter')),
             'configUrl' => $this->get('router')->generate('zikulasecuritycentermodule_config_config'),
             'htmlTags' => $htmlTags,
             'currentHtmlTags' => $variableApi->getSystemVar('AllowableHTML')
@@ -698,7 +692,7 @@ class ConfigController extends AbstractController
             'rp' => 'https://www.w3schools.com/tags/tag_rp.asp',
             'rt' => 'https://www.w3schools.com/tags/tag_rt.asp',
             'ruby' => 'https://www.w3schools.com/tags/tag_ruby.asp',
-            's' => 'https://www.w3schools.com/tags/tag_strike.asp',
+            's' => 'https://www.w3schools.com/tags/tag_s.asp',
             'samp' => 'https://www.w3schools.com/tags/tag_samp.asp',
             'script' => 'https://www.w3schools.com/tags/tag_script.asp',
             'section' => 'https://www.w3schools.com/tags/tag_section.asp',

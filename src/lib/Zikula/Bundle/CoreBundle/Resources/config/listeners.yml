@@ -16,7 +16,6 @@ services:
             - "@twig"
             - "@router"
             - "%installed%"
-            - "@=container.hasParameter('core_installed_version') ? parameter('core_installed_version') : ''"
         tags:
             - { name: kernel.event_subscriber }
 
@@ -42,11 +41,9 @@ services:
     zikula_core.internal.exception_listener:
         class: Zikula\Bundle\CoreBundle\EventListener\ExceptionListener
         arguments:
+            - "@translator.default"
             - "@router"
-            - "@event_dispatcher"
-            - "@zikula.cache_clearer"
             - "@zikula_users_module.current_user"
-            - "@zikula_permissions_module.api.permission"
             - "%installed%"
         tags:
             - { name: kernel.event_subscriber }
@@ -54,14 +51,6 @@ services:
 
     zikula_core.internal.output_compression_listener:
         class: Zikula\Bundle\CoreBundle\EventListener\OutputCompressionListener
-        arguments:
-            - "@zikula_extensions_module.api.variable"
-            - "%installed%"
-        tags:
-            - { name: kernel.event_subscriber }
-
-    zikula_core.internal.strip_front_controller_listener:
-        class: Zikula\Bundle\CoreBundle\EventListener\StripFrontControllerListener
         arguments:
             - "@zikula_extensions_module.api.variable"
             - "%installed%"

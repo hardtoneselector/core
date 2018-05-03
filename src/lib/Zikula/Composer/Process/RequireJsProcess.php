@@ -11,11 +11,11 @@
 
 namespace Zikula\Composer\Process;
 
-use ComponentInstaller\Process\Process;
-use Assetic\Asset\StringAsset;
-use Composer\Json\JsonFile;
 use Assetic\Asset\AssetCollection;
 use Assetic\Asset\FileAsset;
+use Assetic\Asset\StringAsset;
+use ComponentInstaller\Process\Process;
+use Composer\Json\JsonFile;
 
 /**
  * Builds the require.js configuration.
@@ -53,7 +53,7 @@ class RequireJsProcess extends Process
         // Attempt to write the require.config.js file.
         $destination = $this->componentDir . '/require.config.js';
         $this->fs->ensureDirectoryExists(dirname($destination));
-        if (file_put_contents($destination, $requireConfig) === false) {
+        if (false === file_put_contents($destination, $requireConfig)) {
             $this->io->write('<error>Error writing require.config.js</error>');
 
             return false;
@@ -71,7 +71,7 @@ class RequireJsProcess extends Process
         $assets->add(new StringAsset($requireConfig));
 
         // Append the config to the require.js and write it.
-        if (file_put_contents($this->componentDir . '/require.js', $assets->dump()) === false) {
+        if (false === file_put_contents($this->componentDir . '/require.js', $assets->dump())) {
             $this->io->write('<error>Error writing require.js to the components directory</error>');
 
             return false;
@@ -109,11 +109,11 @@ class RequireJsProcess extends Process
             $scripts = isset($options['scripts']) ? $options['scripts'] : [];
             if (!empty($scripts)) {
                 // Put all scripts into a build.js file.
-                $result = $this->aggregateScripts($package, $scripts, $name.DIRECTORY_SEPARATOR.$name.'-built.js');
-                if ($result) {
+                $result = $this->aggregateScripts($package, $scripts, $name . DIRECTORY_SEPARATOR . $name . '-built.js');
+                if (false !== $result) {
                     // If the aggregation was successful, add the script to the
                     // packages array.
-                    $component['main'] = $name.'-built.js';
+                    $component['main'] = $name . '-built.js';
 
                     // Add the component to the packages array.
                     $json['packages'][] = $component;
@@ -162,7 +162,7 @@ class RequireJsProcess extends Process
 
         foreach ($scripts as $script) {
             // Collect each candidate from a glob file search.
-            $path = $this->getVendorDir($package).DIRECTORY_SEPARATOR.$script;
+            $path = $this->getVendorDir($package) . DIRECTORY_SEPARATOR . $script;
             $matches = $this->fs->recursiveGlobFiles($path);
             foreach ($matches as $match) {
                 $assets->add(new FileAsset($match));
@@ -172,7 +172,7 @@ class RequireJsProcess extends Process
 
         // Write the file if there are any JavaScript assets.
         if (!empty($js)) {
-            $destination = $this->componentDir.DIRECTORY_SEPARATOR.$file;
+            $destination = $this->componentDir . DIRECTORY_SEPARATOR . $file;
             $this->fs->ensureDirectoryExists(dirname($destination));
 
             return file_put_contents($destination, $js);

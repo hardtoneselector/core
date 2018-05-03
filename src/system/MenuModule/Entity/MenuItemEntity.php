@@ -104,17 +104,17 @@ class MenuItemEntity extends EntityAccess implements NodeInterface
     public function __construct()
     {
         $this->title = '';
-        $this->options = []; //new ArrayCollection();
-//        $this->options = [
-//            'routeParameters' => [],
-//            'attributes' => [],
-//            'linkAttributes' => [],
-//            'childrenAttributes' => [],
-//            'labelAttributes' => [],
-//            'extras' => [],
-//            'display' => true,
-//            'displayChildren' => true,
-//        ];
+        $this->options = []; /*new ArrayCollection();
+        $this->options = [
+            'routeParameters' => [],
+            'attributes' => [],
+            'linkAttributes' => [],
+            'childrenAttributes' => [],
+            'labelAttributes' => [],
+            'extras' => [],
+            'display' => true,
+            'displayChildren' => true,
+        ];*/
         $this->children = new ArrayCollection();
     }
 
@@ -133,7 +133,22 @@ class MenuItemEntity extends EntityAccess implements NodeInterface
         return $this->title;
     }
 
-    public function setRoot(MenuItemEntity $root)
+    public function getLft()
+    {
+        return $this->lft;
+    }
+
+    public function getLvl()
+    {
+        return $this->lvl;
+    }
+
+    public function getRgt()
+    {
+        return $this->rgt;
+    }
+
+    public function setRoot(self $root)
     {
         $this->root = $root;
     }
@@ -143,7 +158,7 @@ class MenuItemEntity extends EntityAccess implements NodeInterface
         return $this->root;
     }
 
-    public function setParent(MenuItemEntity $parent = null)
+    public function setParent(self $parent = null)
     {
         $this->parent = $parent;
     }

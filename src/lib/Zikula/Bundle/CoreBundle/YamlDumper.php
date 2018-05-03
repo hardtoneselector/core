@@ -12,7 +12,7 @@
 namespace Zikula\Bundle\CoreBundle;
 
 use Symfony\Component\Filesystem\Filesystem;
-use Zikula\Bundle\CoreBundle\Yaml\Yaml;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Class ConfigDumper.
@@ -20,6 +20,7 @@ use Zikula\Bundle\CoreBundle\Yaml\Yaml;
 class YamlDumper
 {
     protected $fs;
+
     protected $fullPath;
 
     public function __construct($configDir, $filePath = 'custom_parameters.yml', $initCopy = null)
@@ -231,7 +232,7 @@ class YamlDumper
      */
     protected function validateName($name, $isParameter)
     {
-        if (!is_string($name) || strlen($name) <= 0 || (!$isParameter && $name == 'parameters')) {
+        if (!is_string($name) || strlen($name) <= 0 || (!$isParameter && 'parameters' == $name)) {
             if ($isParameter) {
                 throw new \InvalidArgumentException('The parameter name must be a string');
             } else {

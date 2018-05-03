@@ -103,13 +103,17 @@ abstract class AbstractNativeAuthenticationMethod implements NonReEntrantAuthent
             $mapping = $this->getMapping($field, $data[$field]);
             if ($mapping) {
                 if ($this->passwordApi->passwordsMatch($data['pass'], $mapping->getPass())) {
-                    // @todo is this the place to update the hash method?
+                    // is this the place to update the hash method? #2842
                     return $mapping->getUid();
                 } else {
                     $this->session->getFlashBag()->add('error', $this->translator->__('Incorrect login credentials'));
                 }
             } else {
-                $this->session->getFlashBag()->add('error', $this->translator->__f('User not found with %field %value', ['%field' => $field, '%value' => $data[$field]]));
+                $this->session->getFlashBag()->add('error', $this->translator->__f('User not found with %field %value using %method method.', [
+                    '%field' => $field,
+                    '%value' => $data[$field],
+                    '%method' => $this->getDisplayName()
+                ]));
             }
         }
 
@@ -128,8 +132,8 @@ abstract class AbstractNativeAuthenticationMethod implements NonReEntrantAuthent
     {
         $mapping = $this->mappingRepository->findOneBy([$field => $value]);
         if (isset($mapping) && (
-            ($field == 'email' && ZAuthConstant::AUTHENTICATION_METHOD_UNAME == $mapping->getMethod())
-            || ($field == 'uname' && ZAuthConstant::AUTHENTICATION_METHOD_EMAIL == $mapping->getMethod()))
+            ('email' == $field && ZAuthConstant::AUTHENTICATION_METHOD_UNAME == $mapping->getMethod())
+            || ('uname' == $field && ZAuthConstant::AUTHENTICATION_METHOD_EMAIL == $mapping->getMethod()))
         ) {
             // mapping exists but method is set to opposite. allow either if possible.
             $mapping->setMethod(ZAuthConstant::AUTHENTICATION_METHOD_EITHER);

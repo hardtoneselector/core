@@ -21,12 +21,13 @@ use Zikula\Bundle\CoreBundle\YamlDumper;
 class LoginStage implements StageInterface, FormHandlerInterface, InjectContainerInterface
 {
     private $container;
+
     private $yamlManager;
 
     public function __construct(ContainerInterface $container)
     {
         $this->container = $container;
-        $this->yamlManager = new YamlDumper($this->container->get('kernel')->getRootDir() .'/config', 'custom_parameters.yml');
+        $this->yamlManager = new YamlDumper($this->container->get('kernel')->getRootDir() . '/config', 'custom_parameters.yml');
     }
 
     public function getName()

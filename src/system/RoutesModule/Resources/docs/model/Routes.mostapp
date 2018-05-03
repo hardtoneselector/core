@@ -4,7 +4,7 @@ application "Routes" {
     author "Zikula contributors"
     email "support@zikula.org"
     url "http://www.zikula.org"
-    version "1.1.1"
+    version "1.1.2"
     prefix "routes"
     generatorSettings {
         settingsContainer "Settings"
@@ -14,6 +14,7 @@ application "Routes" {
         generateSearchApi false
         generateMailzApi false
         generateListBlock false
+        generateDetailBlock false
         generateModerationBlock false
         generateListContentType false
         generateDetailContentType false
@@ -33,13 +34,13 @@ application "Routes" {
         generateIcsTemplates false
         generatePoweredByBacklinksIntoFooterTemplates false
         writeModelToDocs true
+        generateTechnicalDocumentation false
         skipFiles "
             .travis.yml,
             CHANGELOG.md,
             Container/LinkContainer.php,
             Entity/Factory/EntityInitialiser.php,
             Entity/Repository/RouteRepository.php,
-            Entity/RouteEntity.php,
             Form/Handler/Route/EditHandler.php,
             Form/Type/RouteType.php,
             Helper/ViewHelper.php,
@@ -47,6 +48,8 @@ application "Routes" {
             Listener/InstallerListener.php,
             README.md,
             Resources/config/routing.yml,
+            Resources/public/css/style.css,
+            Resources/workflows/none.yml,
             RoutesModuleInstaller.php,
             Twig/TwigExtension.php
         "
@@ -57,6 +60,7 @@ application "Routes" {
             Resources/config/helpers.yml,
             Resources/config/services.yml,
             Resources/config/twig.yml,
+            Resources/views/Config/config.html.twig,
             Resources/views/Route/display.html.twig,
             Resources/views/Route/edit.html.twig,
             Resources/views/Route/view.html.twig
@@ -68,19 +72,6 @@ application "Routes" {
             displayPattern "#path# (#sort#)"
             skipHookSubscribers true
             fields {
-                list "routeType" {
-                    defaultValue "additional"
-                    items {
-                        default listItem "additional" ("additional"),
-                        listItem "temporaryRedirect" ("temporaryRedirect"),
-                        listItem "permanentRedirect" ("permanentRedirect"),
-                        listItem "replace" ("replace")
-                    }
-                },
-                string "replacedRouteName" nullable {
-                    mandatory false
-                    displayType DISPLAY_SORTING
-                },
                 string "bundle",
                 string "controller" {
                     displayType DISPLAY_SORTING
@@ -95,14 +86,14 @@ application "Routes" {
                 string "host" nullable {
                     mandatory false
                 },
-                list "schemes" multiple {
+                list "schemes" multiple expanded {
                     defaultValue "http"
                     items {
                         default listItem "http" ("http"),
                         default listItem "https" ("https")
                     }
                 },
-                list "methods" multiple {
+                list "methods" multiple expanded {
                     defaultValue "GET"
                     items {
                         default listItem "GET" ("GET"),
@@ -115,17 +106,23 @@ application "Routes" {
                 },
                 boolean "prependBundlePrefix" {
                     defaultValue "true"
+                    mandatory false
                 },
                 boolean "translatable" {
                     defaultValue "true"
+                    mandatory false
                 },
                 string "translationPrefix" nullable {
                     mandatory false
                 },
                 array "defaults" {
                     dbName "route_defaults"
+                    mandatory false
                 },
                 array "requirements" {
+                    mandatory false
+                },
+                array "options" {
                     mandatory false
                 },
                 string "condition" nullable {
@@ -137,11 +134,6 @@ application "Routes" {
                     mandatory false
                 },
                 integer "sort" sortablePosition {
-                    mandatory false
-                    displayType DISPLAY_SORTING
-                },
-                string "group" sortableGroup {
-                    dbName "sort_group"
                     mandatory false
                     displayType DISPLAY_SORTING
                 }

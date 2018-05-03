@@ -1,4 +1,4 @@
-{{ pageAddAsset('javascript', asset('jquery-mmenu/js/jquery.mmenu.all.min.js'), 100) }}
+{{ pageAddAsset('javascript', asset('jquery-mmenu/js/jquery.mmenu.all.js'), 100) }}
 {{ pageAddAsset('javascript', zasset('@ZikulaAdminModule:js/ZikulaAdminModule.Modules.Panel.MMenuConfig.js'), 101) }}
 {{ pageAddAsset('javascript', zasset('@ZikulaAdminModule:js/ZikulaAdminModule.Modal.Fix.js'), 102) }}
 {{ pageAddAsset('stylesheet', asset('jquery-mmenu/css/jquery.mmenu.all.css'), 100) }}
@@ -7,7 +7,7 @@
 {% macro draw(links, caller, module) %}
     {% for link in links %}
         <li{% if caller._zkModule == module.modname and caller.path == link.url %} class="selected"{% endif %}>
-            <a href="{{ link.url }}" title="{{ link.text }}">{% if link.icon is defined %}<i class="{{ link.icon }}"></i> {% endif %}{{ link.text }}</a>
+            <a href="{{ link.url }}" title="{{ link.text }}">{% if link.icon is defined %}<i class="fa fa-fw fa-{{ link.icon }}"></i> {% endif %}{{ link.text }}</a>
             {% if link.links is defined %}
                 <ul class="text-left">{{ _self.draw(link.links, caller, module) }}</ul>
             {% endif %}

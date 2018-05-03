@@ -27,8 +27,8 @@ Functions
  * pageGetVar(name, default = null)
  * pageSetVar(name, value)
  * pager(params)
+ * pagerabc(params)
  * polyfill(features = ["forms"])
- * setMetaTag(name, value)
  * showflashes(params = [])
  * stateLabel(extensionEntity, upgradedExtensions = null)
  * zasset(path)
@@ -67,6 +67,24 @@ Functions
  * moduleBreadcrumbs()
  * moduleHelp(type)
  * moduleLinks(type, links, modname, menuid, menuclass, itemclass, first, last)
+
+### Users
+
+#### Messages
+
+ * messageInboxLink($uid = null, $urlOnly = false, $text = '', $class = '')
+ * messageSendLink($uid = null, $urlOnly = false, $text = '', $class = '') (filter)
+ * messageCount($uid = null, $unreadOnly = false)
+
+#### Online state
+
+ * onlineSince(UserEntity $userEntity = null, $minutes = 10) (filter)
+
+#### Profiles
+
+ * userAvatar($uid = 0, array $parameters = [])
+ * profileLinkByUserId($userId, $class = '', $image = '', $maxLength = 0, $title = '') (filter)
+ * profileLinkByUserName($userName, $class = '', $image = '', $maxLength = 0, $title = '') (filter)
 
 ### System Specific
 

@@ -54,7 +54,7 @@ class NodeController extends AbstractController
                 $newCategory->setName($category->getName() . 'copy');
                 $displayNames = [];
                 foreach ($newCategory->getDisplay_name() as $locale => $displayName) {
-                    $displayNames[$locale] = $displayName . ' ' .$this->__('copy');
+                    $displayNames[$locale] = $displayName . ' ' . $this->__('copy');
                 }
                 $newCategory->setDisplay_name($displayNames);
                 $action = 'edit';
@@ -62,15 +62,16 @@ class NodeController extends AbstractController
                 $category = $newCategory;
                 // intentionally no break here
             case 'edit':
+                $localeApi = $this->get('zikula_settings_module.locale_api');
                 if (!isset($category)) {
-                    $category = new CategoryEntity($this->get('zikula_settings_module.locale_api')->getSupportedLocales());
+                    $category = new CategoryEntity($localeApi->getSupportedLocales());
                     $parentId = $request->request->get('parent');
                     $mode = 'new';
                     if (!empty($parentId)) {
                         $parent = $repo->find($parentId);
                         $category->setParent($parent);
                         $category->setRoot($parent->getRoot());
-                    } elseif (empty($parent) && $request->request->has('after')) { // sibling of top-level child
+                    } elseif (empty($parentId) && $request->request->has('after')) { // sibling of top-level child
                         $sibling = $repo->find($request->request->get('after'));
                         $category->setParent($sibling->getParent());
                         $category->setRoot($sibling->getRoot());
@@ -78,7 +79,7 @@ class NodeController extends AbstractController
                 }
                 $form = $this->createForm(CategoryType::class, $category, [
                     'translator' => $this->get('translator.default'),
-                    'locales' => $this->get('zikula_settings_module.locale_api')->getSupportedLocales(),
+                    'locales' => $localeApi->getSupportedLocales(),
                 ]);
                 $form->get('after')->setData($request->request->get('after', null));
                 if ($form->handleRequest($request)->isValid()) {
@@ -87,7 +88,7 @@ class NodeController extends AbstractController
                     if (!empty($after)) {
                         $sibling = $repo->find($after);
                         $repo->persistAsNextSiblingOf($category, $sibling);
-                    } elseif ($mode == 'new') {
+                    } elseif ('new' == $mode) {
                         $repo->persistAsLastChild($category);
                     } // no need to persist edited entity
                     $entityManager->flush();
@@ -99,7 +100,7 @@ class NodeController extends AbstractController
                 }
                 $response = [
                     'result' => $this->renderView('@ZikulaCategoriesModule/Category/edit.html.twig', [
-                        'locales' => $this->get('zikula_settings_module.locale_api')->getSupportedLocaleNames(null, $request->getLocale()),
+                        'locales' => $localeApi->getSupportedLocaleNames(null, $request->getLocale()),
                         'form' => $form->createView()
                     ]),
                     'action' => $action,
@@ -127,7 +128,7 @@ class NodeController extends AbstractController
                 $categoryId = $category->getId();
                 $this->removeRecursive($category);
                 $categoryRemoved = false;
-                if ($category->getChildren()->count() == 0
+                if (0 == $category->getChildren()->count()
                     && $this->get('zikula_categories_module.category_processing_helper')->mayCategoryBeDeletedOrMoved($category)) {
                     $entityManager->remove($category);
                     $categoryRemoved = true;
@@ -144,7 +145,7 @@ class NodeController extends AbstractController
                 break;
             case 'activate':
             case 'deactivate':
-                $category->setStatus($category->getStatus() == 'A' ? 'I' : 'A');
+                $category->setStatus('A' == $category->getStatus() ? 'I' : 'A');
                 $entityManager->flush();
                 $response = [
                     'id' => $category->getId(),

@@ -50,7 +50,7 @@ abstract class AbstractExtensionInstaller implements ExtensionInstallerInterface
     protected $schemaTool;
 
     /**
-     * @var \Zikula\Bundle\HookBundle\Api\HookApi
+     * @var MockHookApi
      */
     protected $hookApi;
 
@@ -62,7 +62,7 @@ abstract class AbstractExtensionInstaller implements ExtensionInstallerInterface
     abstract public function install();
 
     /**
-     * upgrade the blocks extension
+     * upgrade the extension
      *
      * @param string $oldversion version being upgraded
      *
@@ -71,10 +71,9 @@ abstract class AbstractExtensionInstaller implements ExtensionInstallerInterface
     abstract public function upgrade($oldversion);
 
     /**
-     * delete the blocks extension
+     * delete the extension
      *
-     * Since the blocks extension should never be deleted we'all always return false here
-     * @return bool false
+     * @return bool true if successful, false otherwise
      */
     abstract public function uninstall();
 
@@ -86,6 +85,7 @@ abstract class AbstractExtensionInstaller implements ExtensionInstallerInterface
             // both here and in `setContainer` so either method can be called first.
             $this->container->get('translator')->setDomain($this->bundle->getTranslationDomain());
         }
+        $this->hookApi = new MockHookApi();
     }
 
     /**
@@ -99,7 +99,6 @@ abstract class AbstractExtensionInstaller implements ExtensionInstallerInterface
         $this->schemaTool = $container->get('zikula_core.common.doctrine.schema_tool');
         $this->extensionName = $this->name; // for ExtensionVariablesTrait
         $this->variableApi = $container->get('zikula_extensions_module.api.variable'); // for ExtensionVariablesTrait
-        $this->hookApi = $container->get('zikula_hook_bundle.api.hook');
         if ($this->bundle) {
             $container->get('translator')->setDomain($this->bundle->getTranslationDomain());
         }
@@ -112,8 +111,8 @@ abstract class AbstractExtensionInstaller implements ExtensionInstallerInterface
 
     /**
      * Convenience shortcut to add a session flash message.
-     * @param $type
-     * @param $message
+     * @param string $type
+     * @param string $message
      */
     public function addFlash($type, $message)
     {

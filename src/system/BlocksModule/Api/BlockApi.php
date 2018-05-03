@@ -83,6 +83,7 @@ class BlockApi implements BlockApiInterface
 
     /**
      * {@inheritdoc}
+     * @param string $positionName
      */
     public function getBlocksByPosition($positionName)
     {
@@ -143,7 +144,7 @@ class BlockApi implements BlockApiInterface
         // Add service defined blocks.
         foreach ($this->blockCollector->getBlocks() as $id => $blockInstance) {
             $className = get_class($blockInstance);
-            list($moduleName, $serviceId) = explode(':', $id);
+            list($moduleName) = explode(':', $id);
             if (isset($moduleEntity) && $moduleEntity->getName() != $moduleName) {
                 continue;
             }

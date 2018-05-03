@@ -125,7 +125,7 @@ class FilterListener implements EventSubscriberInterface
             return;
         }
 
-        if ($this->getSystemVar('useids') != 1) {
+        if (1 != $this->getSystemVar('useids')) {
             return;
         }
         if (!$event->isMasterRequest()) {
@@ -133,39 +133,36 @@ class FilterListener implements EventSubscriberInterface
         }
 
         // Run IDS if desired
+        $request = $event->getRequest();
         try {
-            $request = [];
+            $requestArgs = [];
             // build request array defining what to scan
-            // @todo: change the order of the arrays to merge if ini_get('variables_order') != 'EGPCS'
-            if (isset($_REQUEST)) {
-                $request['REQUEST'] = $_REQUEST;
+            if ($request->query->count() > 0) {
+                $requestArgs['GET'] = $request->query->all();
             }
-            if (isset($_GET)) {
-                $request['GET'] = $_GET;
+            if ($request->request->count() > 0) {
+                $requestArgs['POST'] = $request->request->all();
             }
-            if (isset($_POST)) {
-                $request['POST'] = $_POST;
+            if ($request->cookies->count() > 0) {
+                $requestArgs['COOKIE'] = $request->cookies->all();
             }
-            if (isset($_COOKIE)) {
-                $request['COOKIE'] = $_COOKIE;
+            if ($request->server->has('HTTP_HOST')) {
+                $requestArgs['HOST'] = $request->server->get('HTTP_HOST');
             }
-            if (isset($_SERVER['HTTP_HOST'])) {
-                $request['HOST'] = $_SERVER['HTTP_HOST'];
+            if ($request->server->has('HTTP_ACCEPT')) {
+                $requestArgs['ACCEPT'] = $request->server->get('HTTP_ACCEPT');
             }
-            if (isset($_SERVER['HTTP_ACCEPT'])) {
-                $request['ACCEPT'] = $_SERVER['HTTP_ACCEPT'];
-            }
-            if (isset($_SERVER['USER_AGENT'])) {
-                $request['USER_AGENT'] = $_SERVER['USER_AGENT'];
+            if ($request->server->has('USER_AGENT')) {
+                $requestArgs['USER_AGENT'] = $request->server->get('USER_AGENT');
             }
             // while i think that REQUEST_URI is unnecessary,
             // the REFERER would be important, but results in way too many false positives
             /*
-            if (isset($_SERVER['REQUEST_URI'])) {
-                $request['REQUEST_URI'] = $_SERVER['REQUEST_URI'];
+            if ($request->server->has('REQUEST_URI')) {
+                $requestArgs['REQUEST_URI'] = $request->server->get('REQUEST_URI');
             }
-            if (isset($_SERVER['HTTP_REFERER'])) {
-                $request['REFERER'] = $_SERVER['HTTP_REFERER'];
+            if ($request->server->has('HTTP_REFERER')) {
+                $requestArgs['REFERER'] = $request->server->get('HTTP_REFERER');
             }
             */
 
@@ -179,13 +176,13 @@ class FilterListener implements EventSubscriberInterface
             $ids = new IdsMonitor($init);
 
             // run the request check and fetch the results
-            $result = $ids->run($request);
+            $result = $ids->run($requestArgs);
 
             // analyze the results
             if (!$result->isEmpty()) {
                 // process the IdsReport object
-                $session = $event->getRequest()->hasSession() ? $event->getRequest()->getSession() : null;
-                $this->processIdsResult($init, $result, $session, $event->getRequest());
+                $session = $request->hasSession() ? $request->getSession() : null;
+                $this->processIdsResult($init, $result, $session, $request);
             } else {
                 // no attack detected
             }
@@ -251,18 +248,6 @@ class FilterListener implements EventSubscriberInterface
         // file cache
         $config['Caching']['path'] = $config['General']['tmp_path'] . '/default_filter.cache';
 
-        // database cache
-        //$config['Caching']['wrapper'] = 'mysql:host=localhost;port=3306;dbname=phpids';
-        //$config['Caching']['user'] = 'phpids_user';
-        //$config['Caching']['password'] = '123456';
-        //$config['Caching']['table'] = 'cache';
-
-        // memcached
-        //$config['Caching']['host'] = 'localhost';
-        //$config['Caching']['port'] = 11211;
-        //$config['Caching']['key_prefix'] = 'PHPIDS';
-        //$config['Caching']['tmp_path'] = $config['General']['tmp_path'] . '/memcache.timestamp';
-
         return $config;
     }
 
@@ -298,11 +283,11 @@ class FilterListener implements EventSubscriberInterface
         // let's see which impact mode we are using
         $idsImpactMode = $this->getSystemVar('idsimpactmode', 1);
         $idsImpactFactor = 1;
-        if ($idsImpactMode == 1) {
+        if (1 == $idsImpactMode) {
             $idsImpactFactor = 1;
-        } elseif ($idsImpactMode == 2) {
+        } elseif (2 == $idsImpactMode) {
             $idsImpactFactor = 10;
-        } elseif ($idsImpactMode == 3) {
+        } elseif (3 == $idsImpactMode) {
             $idsImpactFactor = 5;
         }
 
@@ -312,7 +297,7 @@ class FilterListener implements EventSubscriberInterface
         $impactThresholdThree = $this->getSystemVar('idsimpactthresholdthree', 25) * $idsImpactFactor;
         $impactThresholdFour  = $this->getSystemVar('idsimpactthresholdfour', 75) * $idsImpactFactor;
 
-        $usedImpact = ($idsImpactMode == 1) ? $requestImpact : $sessionImpact;
+        $usedImpact = (1 == $idsImpactMode) ? $requestImpact : $sessionImpact;
 
         // react according to given impact
         if ($usedImpact > $impactThresholdOne) {
@@ -386,20 +371,20 @@ class FilterListener implements EventSubscriberInterface
             $mailBody .= isset($currentUid) ? $this->translator->__f('UserID: %s', ['%s' => $currentUid]) . "\n" : '';
             $currentDate = new \DateTime();
             $mailBody .= $this->translator->__f('Date: %s', ['%s' => $currentDate->format('%b %d, %Y')]) . "\n";
-            if ($idsImpactMode == 1) {
+            if (1 == $idsImpactMode) {
                 $mailBody .= $this->translator->__f('Request Impact: %d', ['%d' => $requestImpact]) . "\n";
             } else {
                 $mailBody .= $this->translator->__f('Session Impact: %d', ['%d' => $sessionImpact]) . "\n";
             }
-            $mailBody .= $this->translator->__f('Affected tags: %s', implode(' ', $result->getTags())) . "\n";
+            $mailBody .= $this->translator->__f('Affected tags: %s', ['%s' => implode(' ', $result->getTags())]) . "\n";
 
             $attackedParameters = '';
             foreach ($result as $event) {
                 $attackedParameters .= $event->getName() . '=' . urlencode($event->getValue()) . ", ";
             }
 
-            $mailBody .= $this->translator->__f('Affected parameters: %s', trim($attackedParameters)) . "\n";
-            $mailBody .= isset($currentPage) ? $this->translator->__f('Request URI: %s', urlencode($currentPage)) : '';
+            $mailBody .= $this->translator->__f('Affected parameters: %s', ['%s' => trim($attackedParameters)]) . "\n";
+            $mailBody .= isset($currentPage) ? $this->translator->__f('Request URI: %s', ['%s' => urlencode($currentPage)]) : '';
 
             // prepare other mail arguments
             $siteName = $this->getSystemVar('sitename', $this->getSystemVar('sitename_en'));
@@ -413,7 +398,7 @@ class FilterListener implements EventSubscriberInterface
             $message->setTo([$adminMail => $this->translator->__('Site Administrator')]);
 
             $subject = $this->translator->__('Intrusion attempt detected by PHPIDS');
-            $rc = $this->mailer->sendMessage($message, $subject, $mailBody);
+            $this->mailer->sendMessage($message, $subject, $mailBody);
         }
 
         if ($usedImpact > $impactThresholdThree) {
@@ -427,7 +412,12 @@ class FilterListener implements EventSubscriberInterface
             }
         }
 
-        // TODO $impactThresholdFour is not considered yet
+        if ($usedImpact > $impactThresholdFour) {
+            // kick user (destroy session)
+            if (!empty($session)) {
+                $session->invalidate();
+            }
+        }
 
         return;
     }

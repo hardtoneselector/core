@@ -31,7 +31,7 @@ class JsResolver implements ResolverInterface
     private $merger;
 
     /**
-     * @var string
+     * @var bool
      */
     private $combine;
 
@@ -46,7 +46,7 @@ class JsResolver implements ResolverInterface
     {
         $this->bag = $bag;
         $this->merger = $merger;
-        $this->combine = $env == 'prod' && $combine;
+        $this->combine = 'prod' == $env && $combine;
     }
 
     public function compile()

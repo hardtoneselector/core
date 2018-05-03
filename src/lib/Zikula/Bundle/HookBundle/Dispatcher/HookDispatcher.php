@@ -11,9 +11,8 @@
 
 namespace Zikula\Bundle\HookBundle\Dispatcher;
 
+use Symfony\Component\EventDispatcher\Event;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Zikula\Bundle\HookBundle\Bundle\SubscriberBundle;
-use Zikula\Bundle\HookBundle\Bundle\ProviderBundle;
 use Zikula\Bundle\HookBundle\Dispatcher\Exception\LogicException;
 use Zikula\Bundle\HookBundle\Hook\Hook;
 
@@ -35,31 +34,17 @@ class HookDispatcher implements HookDispatcherInterface
     private $dispatcher;
 
     /**
-     * Runtime hooks handlers loaded flag.
-     *
-     * @var boolean
-     */
-    private $loaded;
-
-    /**
-     * Service Factory.
-     *
-     * @var ServiceFactory
-     */
-    private $factory;
-
-    /**
      * Constructor.
      *
-     * @param StorageInterface         $storage
+     * @param StorageInterface $storage
      * @param EventDispatcherInterface $dispatcher
-     * @param ServiceFactory           $factory
      */
-    public function __construct(StorageInterface $storage, EventDispatcherInterface $dispatcher, ServiceFactory $factory)
-    {
+    public function __construct(
+        StorageInterface $storage,
+        EventDispatcherInterface $dispatcher
+    ) {
         $this->storage = $storage;
         $this->dispatcher = $dispatcher;
-        $this->factory = $factory;
     }
 
     /**
@@ -78,16 +63,10 @@ class HookDispatcher implements HookDispatcherInterface
      * @param string $name Hook event name
      * @param Hook   $hook Hook instance
      *
-     * @return Hook
+     * @return Event
      */
     public function dispatch($name, Hook $hook)
     {
-        if (!$this->loaded) {
-            // lazy load handlers for the first time
-            $this->loadRuntimeHandlers();
-            $this->loaded = true;
-        }
-
         $this->decorateHook($name, $hook);
         if (!$hook->getAreaId()) {
             return $hook;
@@ -97,117 +76,18 @@ class HookDispatcher implements HookDispatcherInterface
     }
 
     /**
-     * Register a subscriber bundle with persistence.
-     *
-     * @param SubscriberBundle $bundle
-     */
-    public function registerSubscriberBundle(SubscriberBundle $bundle)
-    {
-        foreach ($bundle->getEvents() as $areaType => $eventName) {
-            $this->storage->registerSubscriber($bundle->getOwner(), $bundle->getSubOwner(), $bundle->getArea(), $areaType, $bundle->getCategory(), $eventName);
-        }
-
-        $this->reload();
-    }
-
-    /**
-     * Unregister a subscriber bundle from persistence.
-     *
-     * @param SubscriberBundle $bundle
-     */
-    public function unregisterSubscriberBundle(SubscriberBundle $bundle)
-    {
-        $this->storage->unregisterSubscriberByArea($bundle->getArea());
-
-        $this->reload();
-    }
-
-    /**
-     * Register provider bundle with persistence.
-     *
-     * @param ProviderBundle $bundle
-     */
-    public function registerProviderBundle(ProviderBundle $bundle)
-    {
-        foreach ($bundle->getHooks() as $hook) {
-            $this->storage->registerProvider($bundle->getOwner(), $bundle->getSubOwner(), $bundle->getArea(), $hook['hooktype'], $bundle->getCategory(), $hook['classname'], $hook['method'], $hook['serviceid']);
-        }
-
-        $this->reload();
-    }
-
-    /**
-     * Unregister a provider bundle with persistence.
-     *
-     * @param ProviderBundle $bundle
-     */
-    public function unregisterProviderBundle(ProviderBundle $bundle)
-    {
-        $this->storage->unregisterProviderByArea($bundle->getArea());
-
-        $this->reload();
-    }
-
-    /**
      * Return all bindings for a given area.
      *
      * Area names are unique so you can specify subscriber or provider area.
      *
      * @param string $areaName Areaname
+     * @param string $type subscriber|provider
      *
      * @return array
      */
-    public function getBindingsFor($areaName)
+    public function getBindingsFor($areaName, $type = 'subscriber')
     {
-        return $this->storage->getBindingsFor($areaName);
-    }
-
-    /**
-     * Get subscriber areas for an owner.
-     *
-     * @param string $owner
-     *
-     * @return array
-     */
-    public function getSubscriberAreasByOwner($owner)
-    {
-        return $this->storage->getSubscriberAreasByOwner($owner);
-    }
-
-    /**
-     * Get provider areas for an owner.
-     *
-     * @param string $owner
-     *
-     * @return array
-     */
-    public function getProviderAreasByOwner($owner)
-    {
-        return $this->storage->getProviderAreasByOwner($owner);
-    }
-
-    /**
-     * Get owber by area.
-     *
-     * @param string $areaName
-     *
-     * @return string
-     */
-    public function getOwnerByArea($areaName)
-    {
-        return $this->storage->getOwnerByArea($areaName);
-    }
-
-    /**
-     * Get area id.
-     *
-     * @param string $areaName
-     *
-     * @return integer
-     */
-    public function getAreaId($areaName)
-    {
-        return $this->storage->getAreaId($areaName);
+        return $this->storage->getBindingsFor($areaName, $type);
     }
 
     /**
@@ -222,7 +102,6 @@ class HookDispatcher implements HookDispatcherInterface
     public function setBindOrder($subscriberAreaName, array $providerAreas)
     {
         $this->storage->setBindOrder($subscriberAreaName, $providerAreas);
-        $this->reload();
     }
 
     /**
@@ -289,36 +168,6 @@ class HookDispatcher implements HookDispatcherInterface
     }
 
     /**
-     * Load runtime hook listeners.
-     *
-     * @return HookDispatcher
-     */
-    public function loadRuntimeHandlers()
-    {
-        $handlers = $this->storage->getRuntimeHandlers();
-        foreach ($handlers as $handler) {
-            $callable = [$handler['classname'], $handler['method']];
-            if (is_callable($callable)) {
-                // some classes may not always be callable, for example, when upgrading.
-                if ($handler['serviceid']) {
-                    $callable = $this->factory->buildService($handler['serviceid'], $handler['classname'], $handler['method']);
-                    //                $this->dispatcher->addListenerService($handler['eventname'], $callable);
-                    $o = $this->dispatcher->getContainer()->get($callable[0]);
-                    $this->dispatcher->addListener($handler['eventname'], [$o, $handler['method']]);
-                } else {
-                    try {
-                        $this->dispatcher->addListener($handler['eventname'], $callable);
-                    } catch (\InvalidArgumentException $e) {
-                        throw new Exception\RuntimeException("Hook event handler could not be attached because %s", $e->getMessage(), 0, $e);
-                    }
-                }
-            }
-        }
-
-        return $this;
-    }
-
-    /**
      * Decorate hook with required metadata.
      *
      * @param $name
@@ -332,29 +181,6 @@ class HookDispatcher implements HookDispatcherInterface
             if (!$hook->getCaller()) {
                 $hook->setCaller($owningSide['owner']);
             }
-        }
-    }
-
-    /**
-     * Flush and reload handers.
-     */
-    private function reload()
-    {
-        $this->flushHandlers();
-        $this->loadRuntimeHandlers();
-    }
-
-    /**
-     * Flush handlers.
-     *
-     * Clears all handlers.
-     *
-     * @return void
-     */
-    public function flushHandlers()
-    {
-        foreach ($this->dispatcher->getListeners() as $eventName => $listener) {
-            $this->dispatcher->removeListener($eventName, $listener);
         }
     }
 }

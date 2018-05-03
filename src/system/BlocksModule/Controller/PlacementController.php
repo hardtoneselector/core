@@ -20,8 +20,8 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Zikula\BlocksModule\Entity\BlockPlacementEntity;
 use Zikula\BlocksModule\Entity\BlockPositionEntity;
 use Zikula\Core\Controller\AbstractController;
-use Zikula\ThemeModule\Engine\Annotation\Theme;
 use Zikula\Core\Response\Ajax\ForbiddenResponse;
+use Zikula\ThemeModule\Engine\Annotation\Theme;
 
 /**
  * Class PlacementController
@@ -34,7 +34,7 @@ class PlacementController extends AbstractController
      *
      * @Route("/edit/{pid}", requirements={"pid" = "^[1-9]\d*$"})
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaBlocksModule:Placement:edit.html.twig")
      *
      * @param BlockPositionEntity $positionEntity
      * @return \Symfony\Component\HttpFoundation\Response

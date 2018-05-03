@@ -65,16 +65,16 @@ class ModuleListener implements EventSubscriberInterface
      */
     public function moduleDeactivated(ModuleStateEvent $event)
     {
-        $moduleName = $event->getModule()->getName();
-        $startModule = $this->variableApi->getSystemVar('startpage');
+        $module = $event->getModule();
+        $moduleName = isset($module) ? $event->getModule()->getName() : $event->getModInfo()['name'];
+        $startController = $this->variableApi->getSystemVar('startController');
+        list($startModule) = explode(':', $startController);
 
         if ($moduleName == $startModule) {
             // since the start module has been removed, set all related variables to ''
-            $this->variableApi->set(VariableApi::CONFIG, 'startpage', '');
-            $this->variableApi->set(VariableApi::CONFIG, 'starttype', '');
-            $this->variableApi->set(VariableApi::CONFIG, 'startfunc', '');
+            $this->variableApi->set(VariableApi::CONFIG, 'startController', '');
             $this->variableApi->set(VariableApi::CONFIG, 'startargs', '');
-            $this->session->getFlashBag()->add('info', $this->translator->__('The start module was reset to a static frontpage.'));
+            $this->session->getFlashBag()->add('info', $this->translator->__('The startController was reset to a static frontpage.'));
         }
     }
 }

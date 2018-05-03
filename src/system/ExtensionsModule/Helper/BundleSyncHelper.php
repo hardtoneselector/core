@@ -26,8 +26,8 @@ use Zikula\Core\Exception\FatalErrorException;
 use Zikula\ExtensionsModule\Constant;
 use Zikula\ExtensionsModule\Entity\ExtensionEntity;
 use Zikula\ExtensionsModule\Entity\Repository\ExtensionDependencyRepository;
-use Zikula\ExtensionsModule\Entity\Repository\ExtensionRepository;
-use Zikula\ExtensionsModule\Entity\Repository\ExtensionVarRepository;
+use Zikula\ExtensionsModule\Entity\RepositoryInterface\ExtensionRepositoryInterface;
+use Zikula\ExtensionsModule\Entity\RepositoryInterface\ExtensionVarRepositoryInterface;
 use Zikula\ExtensionsModule\ExtensionEvents;
 
 /**
@@ -41,12 +41,12 @@ class BundleSyncHelper
     private $kernel;
 
     /**
-     * @var ExtensionRepository
+     * @var ExtensionRepositoryInterface
      */
     private $extensionRepository;
 
     /**
-     * @var ExtensionVarRepository
+     * @var ExtensionVarRepositoryInterface
      */
     private $extensionVarRepository;
 
@@ -89,19 +89,20 @@ class BundleSyncHelper
      * BundleSyncHelper constructor.
      *
      * @param ZikulaHttpKernelInterface $kernel
-     * @param ExtensionRepository $extensionRepository
-     * @param ExtensionVarRepository $extensionVarRepository
+     * @param ExtensionRepositoryInterface $extensionRepository
+     * @param ExtensionVarRepositoryInterface $extensionVarRepository
      * @param ExtensionDependencyRepository $extensionDependencyRepository
      * @param TranslatorInterface $translator
      * @param EventDispatcherInterface $dispatcher
      * @param ExtensionStateHelper $extensionStateHelper
+     * @param BootstrapHelper $bootstrapHelper
      * @param ComposerValidationHelper $composerValidationHelper
      * @param SessionInterface $session
      */
     public function __construct(
         ZikulaHttpKernelInterface $kernel,
-        ExtensionRepository $extensionRepository,
-        ExtensionVarRepository $extensionVarRepository,
+        ExtensionRepositoryInterface $extensionRepository,
+        ExtensionVarRepositoryInterface $extensionVarRepository,
         ExtensionDependencyRepository $extensionDependencyRepository,
         TranslatorInterface $translator,
         EventDispatcherInterface $dispatcher,
@@ -160,7 +161,6 @@ class BundleSyncHelper
             /** @var $bundle \Zikula\Core\AbstractModule */
             $bundle = new $bundleClass();
             $bundleMetaData->setTranslator($this->translator);
-            $bundleMetaData->setDirectoryFromBundle($bundle);
             $bundleVersionArray = $bundleMetaData->getFilteredVersionInfoArray();
             $bundleVersionArray['capabilities'] = serialize($bundleVersionArray['capabilities']);
             $bundleVersionArray['securityschema'] = serialize($bundleVersionArray['securityschema']);
@@ -196,26 +196,26 @@ class BundleSyncHelper
      */
     private function validate(array $extensions)
     {
-        $modulenames = [];
-        $displaynames = [];
-        $urls = [];
+        $fieldNames = ['name', 'displayname', 'url'];
+        $moduleValues = [
+            'name' => [],
+            'displayname' => [],
+            'url' => []
+        ];
 
         // check for duplicate name, displayname or url
         foreach ($extensions as $dir => $modInfo) {
-            $fields = ['name', 'displayname', 'url'];
-            foreach ($fields as $field) {
-                if (isset($modulenames[strtolower($modInfo[$field])])) {
+            foreach ($fieldNames as $fieldName) {
+                $key = strtolower($modInfo[$fieldName]);
+                if (isset($moduleValues[$fieldName][$key])) {
                     throw new FatalErrorException($this->translator->__f('Fatal Error: Two extensions share the same %field. [%ext1%] and [%ext2%]', [
-                        '%field' => $field,
+                        '%field' => $fieldName,
                         '%ext1%' => $modInfo['name'],
-                        '%ext2%' => $modulenames[strtolower($modInfo['name'])]
+                        '%ext2%' => $moduleValues['name'][strtolower($modInfo['name'])]
                     ]));
                 }
+                $moduleValues[$fieldName][$key] = $dir;
             }
-
-            $modulenames[strtolower($modInfo['name'])] = $dir;
-            $displaynames[strtolower($modInfo['displayname'])] = $dir;
-            $urls[strtolower($modInfo['url'])] = $dir;
         }
     }
 
@@ -334,12 +334,12 @@ class BundleSyncHelper
                 throw new \RuntimeException($this->translator->__f('Error! Could not load data for module %s.', [$name]));
             }
             $lostModuleState = $lostModule->getState();
-            if (($lostModuleState == Constant::STATE_INVALID)
+            if ((Constant::STATE_INVALID == $lostModuleState)
                 || ($lostModuleState == Constant::STATE_INVALID + Constant::INCOMPATIBLE_CORE_SHIFT)) {
                 // extension was invalid and subsequently removed from file system,
                 // or extension was incompatible with core and subsequently removed, delete it
                 $this->extensionRepository->removeAndFlush($lostModule);
-            } elseif (($lostModuleState == Constant::STATE_UNINITIALISED)
+            } elseif ((Constant::STATE_UNINITIALISED == $lostModuleState)
                 || ($lostModuleState == Constant::STATE_UNINITIALISED + Constant::INCOMPATIBLE_CORE_SHIFT)) {
                 // extension was uninitialised and subsequently removed from file system, delete it
                 $this->extensionRepository->removeAndFlush($lostModule);

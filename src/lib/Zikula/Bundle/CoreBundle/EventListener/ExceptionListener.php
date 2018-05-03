@@ -11,14 +11,13 @@
 
 namespace Zikula\Bundle\CoreBundle\EventListener;
 
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
-use Zikula\Bundle\CoreBundle\CacheClearer;
+use Zikula\Common\Translator\TranslatorInterface;
 use Zikula\UsersModule\Api\ApiInterface\CurrentUserApiInterface;
 
 /**
@@ -27,19 +26,14 @@ use Zikula\UsersModule\Api\ApiInterface\CurrentUserApiInterface;
 class ExceptionListener implements EventSubscriberInterface
 {
     /**
+     * @var TranslatorInterface
+     */
+    private $translator;
+
+    /**
      * @var RouterInterface
      */
     private $router;
-
-    /**
-     * @var EventDispatcherInterface
-     */
-    private $dispatcher;
-
-    /**
-     * @var CacheClearer
-     */
-    private $cacheClearer;
 
     /**
      * @var CurrentUserApiInterface
@@ -53,22 +47,19 @@ class ExceptionListener implements EventSubscriberInterface
 
     /**
      * ExceptionListener constructor.
+     * @param TranslatorInterface $translator
      * @param RouterInterface $router
-     * @param EventDispatcherInterface $dispatcher
-     * @param CacheClearer $cacheClearer
      * @param CurrentUserApiInterface $currentUserApi
      * @param bool $installed
      */
     public function __construct(
+        TranslatorInterface $translator,
         RouterInterface $router,
-        EventDispatcherInterface $dispatcher,
-        CacheClearer $cacheClearer,
         CurrentUserApiInterface $currentUserApi,
         $installed
     ) {
+        $this->translator = $translator;
         $this->router = $router;
-        $this->dispatcher = $dispatcher;
-        $this->cacheClearer = $cacheClearer;
         $this->currentUserApi = $currentUserApi;
         $this->installed = $installed;
     }
@@ -105,21 +96,21 @@ class ExceptionListener implements EventSubscriberInterface
      * Handle an AccessDeniedException
      *
      * @param GetResponseForExceptionEvent $event
-     * @param $userLoggedIn
+     * @param boolean $userLoggedIn
      * @param string $message a custom error message (default: 'Access Denied') (The default message from Symfony)
      * @see http://api.symfony.com/2.8/Symfony/Component/Security/Core/Exception/AccessDeniedException.html
      */
     private function handleAccessDeniedException(GetResponseForExceptionEvent $event, $userLoggedIn, $message = 'Access Denied')
     {
         if (!$userLoggedIn) {
-            $message = ($message == 'Access Denied') ? __('You do not have permission. You must login first.') : $message;
+            $message = ('Access Denied' == $message) ? $this->translator->__('You do not have permission. You must login first.') : $message;
             $event->getRequest()->getSession()->getFlashBag()->add('error', $message);
 
             $params = ['returnUrl' => urlencode($event->getRequest()->getRequestUri())];
             // redirect to login page
             $route = $this->router->generate('zikulausersmodule_access_login', $params, RouterInterface::ABSOLUTE_URL);
         } else {
-            $message = ($message == 'Access Denied') ? __('You do not have permission for that action.') : $message;
+            $message = ('Access Denied' == $message) ? $this->translator->__('You do not have permission for that action.') : $message;
             $event->getRequest()->getSession()->getFlashBag()->add('error', $message);
 
             // redirect to previous page

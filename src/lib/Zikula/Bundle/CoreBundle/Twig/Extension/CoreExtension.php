@@ -97,7 +97,7 @@ class CoreExtension extends \Twig_Extension
      */
     public function yesNo($string)
     {
-        if ($string != '0' && $string != '1') {
+        if ('0' != $string && '1' != $string) {
             return $string;
         }
 
@@ -131,8 +131,8 @@ class CoreExtension extends \Twig_Extension
     {
         $string = preg_replace_callback(
             '/(.)@(.)/s',
-            function ($m) {
-                return "&#" . sprintf("%03d", ord($m[1])) . ";&#064;&#" .sprintf("%03d", ord($m[2])) . ";";
+            function($m) {
+                return "&#" . sprintf("%03d", ord($m[1])) . ";&#064;&#" . sprintf("%03d", ord($m[2])) . ";";
             },
             $string
         );

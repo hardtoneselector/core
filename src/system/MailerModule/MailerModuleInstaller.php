@@ -23,14 +23,11 @@ class MailerModuleInstaller extends AbstractExtensionInstaller
      *
      * @return boolean True on success, or false
      *
-     * @throws RuntimeException Thrown if database tables can not be created or another error occurs
+     * @throws \RuntimeException Thrown if database tables can not be created or another error occurs
      */
     public function install()
     {
         $this->setVars($this->getDefaults());
-
-        // install subscriber hooks
-        $this->hookApi->installSubscriberHooks($this->bundle->getMetaData());
 
         // Initialisation successful
         return true;
@@ -45,7 +42,7 @@ class MailerModuleInstaller extends AbstractExtensionInstaller
      *
      * @return boolean True on success, false otherwise
      *
-     * @throws RuntimeException Thrown if database tables can not be updated
+     * @throws \RuntimeException Thrown if database tables can not be updated
      */
     public function upgrade($oldVersion)
     {
@@ -87,7 +84,7 @@ class MailerModuleInstaller extends AbstractExtensionInstaller
                     'auth_mode' => (!empty($modVars['auth'])) ? 'login' : null,
                     'spool' => ['type' => 'memory'],
                     'delivery_addresses' => [],
-                    'disable_delivery' => $modVars['mailertype'] == 5,
+                    'disable_delivery' => 5 == $modVars['mailertype'],
                 ];
                 $configDumper = $this->container->get('zikula.dynamic_config_dumper');
                 $configDumper->setConfiguration('swiftmailer', $config);
@@ -100,7 +97,6 @@ class MailerModuleInstaller extends AbstractExtensionInstaller
                 $configDumper->setConfiguration('swiftmailer', $config);
             case '1.4.1':
                 // install subscriber hooks
-                $this->hookApi->installSubscriberHooks($this->bundle->getMetaData());
             case '1.4.2':
                 $configDumper = $this->container->get('zikula.dynamic_config_dumper');
                 $config = $configDumper->getConfiguration('swiftmailer');
@@ -109,7 +105,10 @@ class MailerModuleInstaller extends AbstractExtensionInstaller
                 unset($config['delivery_address']);
                 $configDumper->setConfiguration('swiftmailer', $config);
             case '1.4.3':
-            // future upgrade routines
+                // nothing
+            case '1.5.0':
+            case '1.5.1':
+                // future upgrade routines
         }
 
         // Update successful
@@ -121,15 +120,12 @@ class MailerModuleInstaller extends AbstractExtensionInstaller
      *
      * @return boolean True on success, false otherwise
      *
-     * @throws RuntimeException Thrown if database tables or stored workflows can not be removed
+     * @throws \RuntimeException Thrown if database tables or stored workflows can not be removed
      */
     public function uninstall()
     {
         // Delete any module variables
         $this->delVars();
-
-        // uninstall subscriber hooks
-        $this->hookApi->uninstallSubscriberHooks($this->bundle->getMetaData());
 
         // Deletion successful
         return true;

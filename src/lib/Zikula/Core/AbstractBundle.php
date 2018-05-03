@@ -17,18 +17,20 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 use Zikula\Bundle\CoreBundle\Bundle\Scanner;
 use Zikula\Bundle\CoreBundle\Bundle\MetaData;
+use Zikula\ThemeModule\AbstractTheme;
+use Zikula\ThemeModule\Engine\AssetBag;
 
 abstract class AbstractBundle extends Bundle
 {
     const STATE_DISABLED = 2;
+
     const STATE_ACTIVE = 3;
+
     const STATE_MISSING = 6;
 
     protected $state;
 
     protected $booted = false;
-
-    private $basePath;
 
     public function isBooted()
     {
@@ -54,7 +56,7 @@ abstract class AbstractBundle extends Bundle
     public function getInstallerClass()
     {
         $ns = $this->getNamespace();
-        $class = $ns.'\\'.substr($ns, strrpos($ns, '\\') + 1, strlen($ns)).'Installer';
+        $class = $ns . '\\' . substr($ns, strrpos($ns, '\\') + 1, strlen($ns)) . 'Installer';
 
         return $class;
     }
@@ -76,7 +78,7 @@ abstract class AbstractBundle extends Bundle
      */
     public function getLocalePath()
     {
-        return $this->getPath().'/Resources/locale';
+        return $this->getPath() . '/Resources/locale';
     }
 
     /**
@@ -86,7 +88,7 @@ abstract class AbstractBundle extends Bundle
      */
     public function getViewsPath()
     {
-        return $this->getPath().'/Resources/views';
+        return $this->getPath() . '/Resources/views';
     }
 
     /**
@@ -96,7 +98,7 @@ abstract class AbstractBundle extends Bundle
      */
     public function getConfigPath()
     {
-        return $this->getPath().'/Resources/config';
+        return $this->getPath() . '/Resources/config';
     }
 
     /**
@@ -106,36 +108,6 @@ abstract class AbstractBundle extends Bundle
     public function getRelativeAssetPath()
     {
         return strtolower($this->getNameType() . 's/' . substr($this->getName(), 0, -strlen($this->getNameType())));
-    }
-
-    /**
-     * @return string
-     *
-     * @todo remove (drak)
-     * @deprecated This is just a workaround
-     *
-     * @internal This is just required until the transition is over fully to Symfony
-     */
-    public function getRelativePath()
-    {
-        $path = str_replace('\\', '/', $this->getPath());
-        preg_match('#/(modules|system|themes)/#', $path, $matches);
-
-        return substr($path, strpos($path, $matches[1]), strlen($path));
-    }
-
-    /**
-     * @return string
-     */
-    public function getBasePath()
-    {
-        if (null === $this->basePath) {
-            $ns = str_replace('\\', '/', $this->getNamespace());
-            $path = str_replace('\\', '/', $this->getPath());
-            $this->basePath = substr($path, 0, strrpos($path, $ns) - 1);
-        }
-
-        return $this->basePath;
     }
 
     public function getNameType()
@@ -153,9 +125,9 @@ abstract class AbstractBundle extends Bundle
         $type = $this->getNameType();
         $typeLower = strtolower($type);
         if (null === $this->extension) {
-            $basename = preg_replace('/'.$type.'/', '', $this->getName());
+            $basename = preg_replace('/' . $type . '/', '', $this->getName());
 
-            $class = $this->getNamespace().'\\DependencyInjection\\'.$basename.'Extension';
+            $class = $this->getNamespace() . '\\DependencyInjection\\' . $basename . 'Extension';
             if (class_exists($class)) {
                 $extension = new $class();
 
@@ -197,6 +169,23 @@ abstract class AbstractBundle extends Bundle
     }
 
     /**
+     * Add the bundle's stylesheet to the page assets
+     * @param string $name
+     */
+    public function addStylesheet($name = 'style.css')
+    {
+        try {
+            $styleSheet = $this->getContainer()->get('zikula_core.common.theme.asset_helper')->resolve('@' . $this->getName() . ":css/$name");
+        } catch (\InvalidArgumentException $e) {
+            $styleSheet = '';
+        }
+        if (!empty($styleSheet)) {
+            $weight = $this instanceof AbstractTheme ? AssetBag::WEIGHT_THEME_STYLESHEET : AssetBag::WEIGHT_DEFAULT;
+            $this->container->get('zikula_core.common.theme.assets_css')->add([$styleSheet => $weight]);
+        }
+    }
+
+    /**
      * @return MetaData
      */
     public function getMetaData()
@@ -208,7 +197,6 @@ abstract class AbstractBundle extends Bundle
         if (!empty($this->container)) {
             $metaData->setTranslator($this->container->get('translator'));
         }
-        $metaData->setDirectoryFromBundle($this);
         if (!empty($this->container) && $this->container->getParameter('installed')) {
             // overwrite composer.json settings with dynamic values from extension repository
             $extensionEntity = $this->container->get('zikula_extensions_module.extension_repository')->get($this->getName());

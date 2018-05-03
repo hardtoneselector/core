@@ -11,10 +11,9 @@
 
 namespace Zikula\ThemeModule\Engine;
 
+use Doctrine\Common\Annotations\Reader;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
-use Doctrine\Common\Annotations\Reader;
-use Zikula\BlocksModule\Api\ApiInterface\BlockApiInterface;
 use Zikula\Bundle\CoreBundle\HttpKernel\ZikulaKernel;
 use Zikula\ExtensionsModule\Api\ApiInterface\VariableApiInterface;
 
@@ -82,11 +81,6 @@ class Engine
     private $filterService;
 
     /**
-     * @var BlockApiInterface
-     */
-    private $blockApi;
-
-    /**
      * @var VariableApiInterface
      */
     private $variableApi;
@@ -97,7 +91,6 @@ class Engine
      * @param Reader $annotationReader
      * @param ZikulaKernel $kernel
      * @param AssetFilter $filter
-     * @param BlockApiInterface $blockApi
      * @param VariableApiInterface $variableApi
      */
     public function __construct(
@@ -105,14 +98,12 @@ class Engine
         Reader $annotationReader,
         ZikulaKernel $kernel,
         AssetFilter $filter,
-        BlockApiInterface $blockApi,
         VariableApiInterface $variableApi
     ) {
         $this->requestStack = $requestStack;
         $this->annotationReader = $annotationReader;
         $this->kernel = $kernel;
         $this->filterService = $filter;
-        $this->blockApi = $blockApi;
         $this->variableApi = $variableApi;
     }
 
@@ -125,6 +116,7 @@ class Engine
     public function wrapResponseInTheme(Response $response)
     {
         $activeTheme = $this->getTheme();
+        $activeTheme->addStylesheet();
         $moduleName = $this->requestStack->getMasterRequest()->attributes->get('_zkModule');
         $themedResponse = $activeTheme->generateThemedResponse($this->getRealm(), $response, $moduleName);
         $filteredResponse = $this->filter($themedResponse);
@@ -263,7 +255,7 @@ class Engine
     {
         $themeConfig = $this->getTheme()->getConfig();
         // defining an admin realm overrides all other options for 'admin' annotated methods
-        if ($this->annotationValue == 'admin' && isset($themeConfig['admin'])) {
+        if ('admin' == $this->annotationValue && isset($themeConfig['admin'])) {
             $this->realm = 'admin';
 
             return;
@@ -271,7 +263,7 @@ class Engine
         $request = $this->requestStack->getMasterRequest();
         $requestAttributes = $request->attributes->all();
         // match `/` for home realm
-        if (isset($requestAttributes['_route']) && $requestAttributes['_route'] == 'home') {
+        if (isset($requestAttributes['_route']) && 'home' == $requestAttributes['_route']) {
             $this->realm = 'home';
 
             return;
@@ -280,7 +272,6 @@ class Engine
         unset($themeConfig['admin'], $themeConfig['home'], $themeConfig['master']); // remove to avoid scanning/matching in loop
         $pathInfo = $request->getPathInfo();
         foreach ($themeConfig as $realm => $config) {
-            // @todo is there a faster way to do this?
             if (!empty($config['pattern'])) {
                 $pattern = ';' . str_replace('/', '\\/', $config['pattern']) . ';i'; // delimiters are ; and i means case-insensitive
                 $valuesToMatch = [];
@@ -295,7 +286,7 @@ class Engine
                 }
                 foreach ($valuesToMatch as $value) {
                     $match = preg_match($pattern, $value);
-                    if ($match === 1) {
+                    if (1 === $match) {
                         $this->realm = $realm;
 
                         return; // use first match and do not continue to attempt to match patterns

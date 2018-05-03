@@ -142,12 +142,17 @@ class UpdateCheckHelper
             } else {
                 $this->releases = $newVersionInfo;
                 $this->checked = true;
-                $this->updateversion = $this->releases[0]['tag_name'];
-                //updateversion - get latest version from releases - move all git releases/updatechecker management to separate class
+                foreach ($this->releases as $release) {
+                    if (true === $release['prerelease']) {
+                        continue;
+                    }
+                    $this->updateversion = $release['tag_name'];
+                    break;
+                }
             }
         }
 
-        if ($this->checked === true && $this->updateversion !== '') {
+        if (true === $this->checked && '' !== $this->updateversion) {
             $this->variableApi->set(VariableApi::CONFIG, 'updatelastchecked', (int)time());
             $this->variableApi->set(VariableApi::CONFIG, 'updateversion', $this->updateversion);
             $this->lastChecked = (int)$this->variableApi->getSystemVar('updatelastchecked');
@@ -174,7 +179,8 @@ class UpdateCheckHelper
         $ref = $this->requestStack
             ->getMasterRequest()
             ->getBaseURL();
-        $port = (($urlArray['scheme'] == 'https') ? 443 : 80);
+        $port = ('https' == $urlArray['scheme']) ? 443 : 80;
+
         if (function_exists('curl_init')) {
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
@@ -185,18 +191,17 @@ class UpdateCheckHelper
             curl_setopt($ch, CURLOPT_REFERER, $ref);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
             if (!ini_get('safe_mode') && !ini_get('open_basedir')) {
-                // This option doesnt work in safe_mode or with open_basedir set in php.ini
+                // This option does not work in safe_mode or with open_basedir set in php.ini
                 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
             }
             curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
             $data = curl_exec($ch);
-            if (!$data && $port = 443) {
+            if (!$data && 443 == $port) {
                 // retry non ssl
                 $url = str_replace('https://', 'http://', $url);
                 curl_setopt($ch, CURLOPT_URL, "$url?");
-                $data = @curl_exec($ch);
+                $data = curl_exec($ch);
             }
-            //$headers = curl_getinfo($ch);
             curl_close($ch);
 
             return $data;
@@ -205,25 +210,25 @@ class UpdateCheckHelper
         if (ini_get('allow_url_fopen')) {
             // handle SSL connections
             $path_query = (isset($urlArray['query']) ? $urlArray['path'] . $urlArray['query'] : $urlArray['path']);
-            $host = ($port == 443 ? "ssl://$urlArray[host]" : $urlArray['host']);
-            $fp = @fsockopen($host, $port, $errno, $errstr, $timeout);
+            $host = (443 == $port ? "ssl://$urlArray[host]" : $urlArray['host']);
+            $fp = fsockopen($host, $port, $errno, $errstr, $timeout);
             if (!$fp) {
                 return false;
-            } else {
-                $out = "GET $path_query? HTTP/1.1\r\n";
-                $out .= "User-Agent: $userAgent\r\n";
-                $out .= "Referer: $ref\r\n";
-                $out .= "Host: $urlArray[host]\r\n";
-                $out .= "Connection: Close\r\n\r\n";
-                fwrite($fp, $out);
-                while (!feof($fp)) {
-                    $data .= fgets($fp, 1024);
-                }
-                fclose($fp);
-                $dataArray = explode("\r\n\r\n", $data);
-
-                return $dataArray[1];
             }
+
+            $out = "GET $path_query? HTTP/1.1\r\n";
+            $out .= "User-Agent: $userAgent\r\n";
+            $out .= "Referer: $ref\r\n";
+            $out .= "Host: $urlArray[host]\r\n";
+            $out .= "Connection: Close\r\n\r\n";
+            fwrite($fp, $out);
+            while (!feof($fp)) {
+                $data .= fgets($fp, 1024);
+            }
+            fclose($fp);
+            $dataArray = explode("\r\n\r\n", $data);
+
+            return $dataArray[1];
         }
 
         return false;

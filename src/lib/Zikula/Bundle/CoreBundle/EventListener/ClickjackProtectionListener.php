@@ -18,7 +18,7 @@ use Symfony\Component\HttpKernel\KernelEvents;
 /**
  * Sets x-origin headers to prevent clickjacking attacks.
  *
- * TODO consider https://github.com/nelmio/NelmioSecurityBundle for a future major release
+ * Consider https://github.com/nelmio/NelmioSecurityBundle for a future major release refs #3646
  */
 class ClickjackProtectionListener implements EventSubscriberInterface
 {
@@ -36,7 +36,7 @@ class ClickjackProtectionListener implements EventSubscriberInterface
     {
         return [
             KernelEvents::RESPONSE => [
-                ['onKernelResponse']
+                ['onKernelResponse', -99]
             ]
         ];
     }

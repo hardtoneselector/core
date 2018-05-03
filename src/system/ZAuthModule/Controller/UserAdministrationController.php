@@ -27,8 +27,10 @@ use Zikula\Core\Event\GenericEvent;
 use Zikula\Core\Response\PlainResponse;
 use Zikula\ThemeModule\Engine\Annotation\Theme;
 use Zikula\UsersModule\Constant as UsersConstant;
-use Zikula\UsersModule\Container\HookContainer;
 use Zikula\UsersModule\Entity\UserEntity;
+use Zikula\UsersModule\Event\UserFormAwareEvent;
+use Zikula\UsersModule\Event\UserFormDataEvent;
+use Zikula\UsersModule\HookSubscriber\UserManagementUiHooksSubscriber;
 use Zikula\UsersModule\RegistrationEvents;
 use Zikula\UsersModule\UserEvents;
 use Zikula\ZAuthModule\Entity\AuthenticationMappingEntity;
@@ -47,7 +49,7 @@ class UserAdministrationController extends AbstractController
     /**
      * @Route("/list/{sort}/{sortdir}/{letter}/{startnum}")
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaZAuthModule:UserAdministration:list.html.twig")
      * @param Request $request
      * @param string $sort
      * @param string $sortdir
@@ -74,7 +76,7 @@ class UserAdministrationController extends AbstractController
         if (!empty($letter) && 'all' != $letter) {
             $filter['uname'] = ['operator' => 'like', 'operand' => "$letter%"];
         }
-        $limit = 25; // @todo make this configurable?
+        $limit = 25;
 
         $mappings = $this->get('zikula_zauth_module.authentication_mapping_repository')->query(
             $filter,
@@ -123,7 +125,7 @@ class UserAdministrationController extends AbstractController
     /**
      * @Route("/user/create")
      * @Theme("admin")
-     * @Template()
+     * @Template("ZikulaZAuthModule:UserAdministration:create.html.twig")
      * @param Request $request
      * @return array
      */
@@ -132,31 +134,32 @@ class UserAdministrationController extends AbstractController
         if (!$this->hasPermission('ZikulaZAuthModule', '::', ACCESS_ADMIN)) {
             throw new AccessDeniedException();
         }
+        $dispatcher = $this->get('event_dispatcher');
 
         $mapping = new AuthenticationMappingEntity();
         $form = $this->createForm(AdminCreatedUserType::class, $mapping, [
-            'translator' => $this->get('translator.default')
+            'translator' => $this->get('translator.default'),
+            'minimumPasswordLength' => $this->get('zikula_extensions_module.api.variable')->get('ZikulaZAuthModule', ZAuthConstant::MODVAR_PASSWORD_MINIMUM_LENGTH, ZAuthConstant::DEFAULT_PASSWORD_MINIMUM_LENGTH)
         ]);
+        $formEvent = new UserFormAwareEvent($form);
+        $dispatcher->dispatch(UserEvents::EDIT_FORM, $formEvent);
         $form->handleRequest($request);
 
-        $event = new GenericEvent($form->getData(), [], new ValidationProviders());
-        $this->get('event_dispatcher')->dispatch(UserEvents::NEW_VALIDATE, $event);
-        $validators = $event->getData();
-        $hook = new ValidationHook($validators);
-        $this->get('hook_dispatcher')->dispatch(HookContainer::EDIT_VALIDATE, $hook);
+        $hook = new ValidationHook(new ValidationProviders());
+        $this->get('hook_dispatcher')->dispatch(UserManagementUiHooksSubscriber::EDIT_VALIDATE, $hook);
         $validators = $hook->getValidators();
 
         if ($form->isValid() && !$validators->hasErrors()) {
             if ($form->get('submit')->isClicked()) {
                 $mapping = $form->getData();
                 $passToSend = $form['sendpass']->getData() ? $mapping->getPass() : '';
-                $authMethodName = ($mapping->getMethod() == ZAuthConstant::AUTHENTICATION_METHOD_EITHER) ? ZAuthConstant::AUTHENTICATION_METHOD_UNAME : $mapping->getMethod();
+                $authMethodName = (ZAuthConstant::AUTHENTICATION_METHOD_EITHER == $mapping->getMethod()) ? ZAuthConstant::AUTHENTICATION_METHOD_UNAME : $mapping->getMethod();
                 $authMethod = $this->get('zikula_users_module.internal.authentication_method_collector')->get($authMethodName);
                 $user = new UserEntity();
                 $user->merge($mapping->getUserEntityData());
                 $user->setAttribute(UsersConstant::AUTHENTICATION_METHOD_ATTRIBUTE_KEY, $mapping->getMethod());
                 $this->get('zikula_users_module.helper.registration_helper')->registerNewUser($user);
-                if ($user->getActivated() == UsersConstant::ACTIVATED_PENDING_REG) {
+                if (UsersConstant::ACTIVATED_PENDING_REG == $user->getActivated()) {
                     $notificationErrors = $this->get('zikula_users_module.helper.mail_helper')->createAndSendRegistrationMail($user, $form['usernotification']->getData(), $form['adminnotification']->getData(), $passToSend);
                 } else {
                     $notificationErrors = $this->get('zikula_users_module.helper.mail_helper')->createAndSendUserMail($user, $form['usernotification']->getData(), $form['adminnotification']->getData(), $passToSend);
@@ -169,17 +172,17 @@ class UserAdministrationController extends AbstractController
                 if (!$authMethod->register($mapping->toArray())) {
                     $this->addFlash('error', $this->__('The create process failed for an unknown reason.'));
                     $this->get('zikula_users_module.user_repository')->removeAndFlush($user);
-                    $this->get('event_dispatcher')->dispatch(RegistrationEvents::DELETE_REGISTRATION, new GenericEvent($user->getUid()));
+                    $dispatcher->dispatch(RegistrationEvents::DELETE_REGISTRATION, new GenericEvent($user->getUid()));
 
                     return $this->redirectToRoute('zikulazauthmodule_useradministration_list');
                 }
-                $event = new GenericEvent($form->getData(), [], new ValidationProviders());
-                $this->get('event_dispatcher')->dispatch(UserEvents::NEW_PROCESS, $event);
+                $formDataEvent = new UserFormDataEvent($user, $form);
+                $dispatcher->dispatch(UserEvents::EDIT_FORM_HANDLE, $formDataEvent);
                 $hook = new ProcessHook($user->getUid());
-                $this->get('hook_dispatcher')->dispatch(HookContainer::EDIT_PROCESS, $hook);
-                $this->get('event_dispatcher')->dispatch(RegistrationEvents::REGISTRATION_SUCCEEDED, new GenericEvent($user));
+                $this->get('hook_dispatcher')->dispatch(UserManagementUiHooksSubscriber::EDIT_PROCESS, $hook);
+                $dispatcher->dispatch(RegistrationEvents::REGISTRATION_SUCCEEDED, new GenericEvent($user));
 
-                if ($user->getActivated() == UsersConstant::ACTIVATED_PENDING_REG) {
+                if (UsersConstant::ACTIVATED_PENDING_REG == $user->getActivated()) {
                     $this->addFlash('status', $this->__('Done! Created new registration application.'));
                 } elseif (null !== $user->getActivated()) {
                     $this->addFlash('status', $this->__('Done! Created new user account.'));
@@ -196,13 +199,14 @@ class UserAdministrationController extends AbstractController
 
         return [
             'form' => $form->createView(),
+            'additional_templates' => isset($formEvent) ? $formEvent->getTemplates() : []
         ];
     }
 
     /**
      * @Route("/user/modify/{mapping}", requirements={"mapping" = "^[1-9]\d*$"})
      * @Theme("admin")
-     * @Template()
+     * @Template("ZikulaZAuthModule:UserAdministration:modify.html.twig")
      * @param Request $request
      * @param AuthenticationMappingEntity $mapping
      * @return array|\Symfony\Component\HttpFoundation\RedirectResponse
@@ -215,18 +219,19 @@ class UserAdministrationController extends AbstractController
         if (1 === $mapping->getUid()) {
             throw new AccessDeniedException($this->__("Error! You can't edit the guest account."));
         }
+        $dispatcher = $this->get('event_dispatcher');
 
         $form = $this->createForm(AdminModifyUserType::class, $mapping, [
-            'translator' => $this->get('translator.default')
+            'translator' => $this->get('translator.default'),
+            'minimumPasswordLength' => $this->get('zikula_extensions_module.api.variable')->get('ZikulaZAuthModule', ZAuthConstant::MODVAR_PASSWORD_MINIMUM_LENGTH, ZAuthConstant::DEFAULT_PASSWORD_MINIMUM_LENGTH)
         ]);
         $originalMapping = clone $mapping;
+        $formEvent = new UserFormAwareEvent($form);
+        $dispatcher->dispatch(UserEvents::EDIT_FORM, $formEvent);
         $form->handleRequest($request);
 
-        $event = new GenericEvent($form->getData(), [], new ValidationProviders());
-        $this->get('event_dispatcher')->dispatch(UserEvents::MODIFY_VALIDATE, $event);
-        $validators = $event->getData();
-        $hook = new ValidationHook($validators);
-        $this->get('hook_dispatcher')->dispatch(HookContainer::EDIT_VALIDATE, $hook);
+        $hook = new ValidationHook(new ValidationProviders());
+        $this->get('hook_dispatcher')->dispatch(UserManagementUiHooksSubscriber::EDIT_VALIDATE, $hook);
         $validators = $hook->getValidators();
 
         if ($form->isValid() && !$validators->hasErrors()) {
@@ -249,10 +254,11 @@ class UserAdministrationController extends AbstractController
                 ];
                 $eventData = ['old_value' => $originalMapping->getUname()];
                 $updateEvent = new GenericEvent($userEntity, $eventArgs, $eventData);
-                $this->get('event_dispatcher')->dispatch(UserEvents::UPDATE_ACCOUNT, $updateEvent);
+                $dispatcher->dispatch(UserEvents::UPDATE_ACCOUNT, $updateEvent);
 
-                $this->get('event_dispatcher')->dispatch(UserEvents::MODIFY_PROCESS, new GenericEvent($userEntity));
-                $this->get('hook_dispatcher')->dispatch(HookContainer::EDIT_PROCESS, new ProcessHook($mapping->getUid()));
+                $formDataEvent = new UserFormDataEvent($userEntity, $form);
+                $dispatcher->dispatch(UserEvents::EDIT_FORM_HANDLE, $formDataEvent);
+                $this->get('hook_dispatcher')->dispatch(UserManagementUiHooksSubscriber::EDIT_PROCESS, new ProcessHook($mapping->getUid()));
 
                 $this->addFlash('status', $this->__("Done! Saved user's account information."));
             }
@@ -265,13 +271,14 @@ class UserAdministrationController extends AbstractController
 
         return [
             'form' => $form->createView(),
+            'additional_templates' => isset($formEvent) ? $formEvent->getTemplates() : []
         ];
     }
 
     /**
      * @Route("/verify/{mapping}", requirements={"mapping" = "^[1-9]\d*$"})
      * @Theme("admin")
-     * @Template()
+     * @Template("ZikulaZAuthModule:UserAdministration:verify.html.twig")
      * @param Request $request
      * @param AuthenticationMappingEntity $mapping
      * @return array
@@ -363,7 +370,7 @@ class UserAdministrationController extends AbstractController
     /**
      * @Route("/toggle-password-change/{user}", requirements={"user" = "^[1-9]\d*$"})
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaZAuthModule:UserAdministration:togglePasswordChange.html.twig")
      * @param Request $request
      * @param UserEntity $user // note: this is intentionally left as UserEntity instead of mapping because of need to access attributes
      * @return array|RedirectResponse

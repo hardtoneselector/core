@@ -19,6 +19,8 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\NotBlank;
+use Zikula\Common\Translator\IdentityTranslator;
+use Zikula\MenuModule\Entity\MenuItemEntity;
 use Zikula\MenuModule\Form\DataTransformer\KeyValueTransformer;
 use Zikula\MenuModule\Form\EventListener\KeyValueFixerListener;
 use Zikula\MenuModule\Form\EventListener\OptionValidatorListener;
@@ -59,11 +61,11 @@ class MenuItemType extends AbstractType
         $builder->get('options')
             ->addModelTransformer(new KeyValueTransformer())
             ->addEventSubscriber(new KeyValueFixerListener())
-            ->addEventSubscriber(new OptionValidatorListener())
+            ->addEventSubscriber(new OptionValidatorListener($options['translator']))
         ;
         if ($options['includeRoot']) {
             $builder->add('root', EntityType::class, [
-                'class' => 'Zikula\MenuModule\Entity\MenuItemEntity',
+                'class' => MenuItemEntity::class,
                 'choice_label' => 'title',
             ]);
         } else {
@@ -71,7 +73,7 @@ class MenuItemType extends AbstractType
         }
         if ($options['includeParent']) {
             $builder->add('parent', EntityType::class, [
-                'class' => 'Zikula\MenuModule\Entity\MenuItemEntity',
+                'class' => MenuItemEntity::class,
                 'choice_label' => 'title',
                 'placeholder' => $options['translator']->__('No parent'),
                 'empty_data' => null,
@@ -96,10 +98,10 @@ class MenuItemType extends AbstractType
     public function configureOptions(OptionsResolver $resolver)
     {
         $resolver->setDefaults([
-            'translator' => null,
+            'translator' => new IdentityTranslator(),
             'includeRoot' => false,
             'includeParent' => false,
-            'data_class' => 'Zikula\MenuModule\Entity\MenuItemEntity',
+            'data_class' => MenuItemEntity::class,
         ]);
     }
 

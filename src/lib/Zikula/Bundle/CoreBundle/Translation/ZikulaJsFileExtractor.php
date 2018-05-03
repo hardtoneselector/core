@@ -18,9 +18,12 @@ use JMS\TranslationBundle\Translation\Extractor\FileVisitorInterface;
 
 class ZikulaJsFileExtractor implements FileVisitorInterface
 {
-    const JAVASCRIPT_DOMAIN = 'zikula_javascript'; // @todo figure out way to compute the bundle's translation domain?
+    const JAVASCRIPT_DOMAIN = 'zikula_javascript'; // figure out way to compute the bundle's translation domain? #3650
+
     const SINGULAR_CAPTURE_REGEX = '\s?([\'"])((?:(?!\1).)*)\1\s?';
+
     const PLURAL_CAPTURE_REGEX = '\s?([\'"])((?:(?!\1).)*)\1\s?,\s?([\'"])((?:(?!\3).)*)\3\s?';
+
     const REGEX_DELIMITER = '/';
 
     private $singularFunctions = [
@@ -29,6 +32,7 @@ class ZikulaJsFileExtractor implements FileVisitorInterface
         '__',
         '__f',
     ];
+
     private $pluralFunctions = [
         '_n',
         '_fn'
@@ -45,7 +49,7 @@ class ZikulaJsFileExtractor implements FileVisitorInterface
         preg_match_all($argumentsRegex, file_get_contents($file), $singularMatches);
         foreach ($singularMatches[2] as $string) {
             $message = new Message($string, self::JAVASCRIPT_DOMAIN);
-            $message->addSource(new FileSource((string) $file));
+            $message->addSource(new FileSource((string)$file));
             $catalogue->add($message);
         }
         // plural type
@@ -54,7 +58,7 @@ class ZikulaJsFileExtractor implements FileVisitorInterface
         foreach ($pluralMatches[2] as $key => $singularString) {
             $fullString = $singularString . '|' . $pluralMatches[4][$key];
             $message = new Message($fullString, self::JAVASCRIPT_DOMAIN);
-            $message->addSource(new FileSource((string) $file));
+            $message->addSource(new FileSource((string)$file));
             $catalogue->add($message);
         }
     }

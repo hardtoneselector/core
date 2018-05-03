@@ -22,6 +22,7 @@ class AppleController
     /**
      * @Route("/view/{d}")
      * @Template
+     *
      * @param null $d
      * @return array
      */
@@ -38,6 +39,7 @@ class AppleController
     /**
      * @Route("/t")
      * @Template
+     *
      * @return array
      */
     public function translatedAction()

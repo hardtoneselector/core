@@ -17,8 +17,8 @@ use Zikula\Bundle\CoreBundle\HttpKernel\ZikulaHttpKernelInterface;
 use Zikula\ExtensionsModule\Constant;
 use Zikula\ExtensionsModule\Entity\ExtensionDependencyEntity;
 use Zikula\ExtensionsModule\Entity\ExtensionEntity;
-use Zikula\ExtensionsModule\Entity\Repository\ExtensionDependencyRepository;
 use Zikula\ExtensionsModule\Entity\RepositoryInterface\ExtensionRepositoryInterface;
+use Zikula\ExtensionsModule\Entity\Repository\ExtensionDependencyRepository;
 use Zikula\ExtensionsModule\Exception\ExtensionDependencyException;
 
 class ExtensionDependencyHelper
@@ -40,8 +40,9 @@ class ExtensionDependencyHelper
 
     /**
      * @var array
-     */
+     * unused, see below /
     private $installedPackages = [];
+     */
 
     /**
      * ExtensionDependencyHelper constructor.
@@ -110,7 +111,7 @@ class ExtensionDependencyHelper
             }
             $this->checkForFatalDependency($dependency);
             // get and set reason from bundle metaData temporarily
-            if ($dependency->getReason() === false) {
+            if (false === $dependency->getReason()) {
                 $bundle = $this->kernel->getModule($dependency->getModname());
                 if (null !== $bundle) {
                     $bundleDependencies = $bundle->getMetaData()->getDependencies();
@@ -138,10 +139,10 @@ class ExtensionDependencyHelper
     private function checkForFatalDependency(ExtensionDependencyEntity $dependency)
     {
         $foundExtension = $this->extensionEntityRepo->get($dependency->getModname());
-        if ($dependency->getStatus() == MetaData::DEPENDENCY_REQUIRED
+        if (MetaData::DEPENDENCY_REQUIRED == $dependency->getStatus()
             && (is_null($foundExtension) // never in the filesystem
-                || $foundExtension->getState() == Constant::STATE_MISSING
-                || $foundExtension->getState() == Constant::STATE_INVALID
+                || Constant::STATE_MISSING == $foundExtension->getState()
+                || Constant::STATE_INVALID == $foundExtension->getState()
                 || $foundExtension->getState() > 10 // not compatible with current core
             )) {
             throw new ExtensionDependencyException(sprintf('Could not find a core-compatible, required dependency: %s.', $dependency->getModname()));
@@ -160,7 +161,7 @@ class ExtensionDependencyHelper
      */
     private function bundleDependencySatisfied(ExtensionDependencyEntity &$dependency)
     {
-        if ($dependency->getModname() == "php") {
+        if ('php' == $dependency->getModname()) {
             // Do not use PHP_VERSION constant, because it might throw off the semver parser.
             $phpVersion = PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION . "." . PHP_RELEASE_VERSION;
             if (!Semver::satisfies($phpVersion, $dependency->getMinversion())) {
@@ -169,43 +170,42 @@ class ExtensionDependencyHelper
 
             return true;
         }
-        if (strpos($dependency->getModname(), 'composer/') !== false) {
-            // @todo this specifically is for `composer/installers` but will catch all with `composer/`
+        if (false !== strpos($dependency->getModname(), 'composer/')) {
+            // this specifically is for `composer/installers` but will catch all with `composer/`
             return true;
         }
 
         return true;
-        /**
-         * The section below is disabled because it doesn't work with dependencies that are in the module's own vendor directory.
-         */
-//        if (strpos($dependency->getModname(), '/') !== false) {
-//            if ($this->kernel->isBundle($dependency->getModname())) {
-//                if (empty($this->installedPackages)) {
-//                    // create and cache installed packages from composer.lock file
-//                    $appPath = $this->kernel->getRootDir();
-//                    $composerLockPath = realpath($appPath . '/../') . 'composer.lock';
-//                    $packages = json_decode(file_get_contents($composerLockPath), true);
-//                    foreach ($packages as $package) {
-//                        $this->installedPackages[$package['name']] = $package;
-//                    }
-//                }
-//                if (Semver::satisfies($this->installedPackages[$dependency->getModname()]['version'], $dependency->getMinversion())) {
-//                    return true;
-//                }
-//            }
-//
-//            throw new \InvalidArgumentException(sprintf('This dependency can only be resolved by adding %s to the core\'s composer.json file and running `composer update`.', $dependency->getModname()));
-//        }
-//
-//        return false;
+        // The section below is disabled because it doesn't work with dependencies that are in the module's own vendor directory.
+        /*
+        if (strpos($dependency->getModname(), '/') !== false) {
+            if ($this->kernel->isBundle($dependency->getModname())) {
+                if (empty($this->installedPackages)) {
+                    // create and cache installed packages from composer.lock file
+                    $appPath = $this->kernel->getRootDir();
+                    $composerLockPath = realpath($appPath . '/../') . 'composer.lock';
+                    $packages = json_decode(file_get_contents($composerLockPath), true);
+                    foreach ($packages as $package) {
+                        $this->installedPackages[$package['name']] = $package;
+                    }
+                }
+                if (Semver::satisfies($this->installedPackages[$dependency->getModname()]['version'], $dependency->getMinversion())) {
+                    return true;
+                }
+            }
+
+            throw new \InvalidArgumentException(sprintf('This dependency can only be resolved by adding %s to the core\'s composer.json file and running `composer update`.', $dependency->getModname()));
+        }
+
+        return false;*/
     }
 
     /**
      * Determine if a $currentVersion value is between $requiredMin and $requiredMax.
      *
-     * @param $requiredMin
-     * @param $requiredMax
-     * @param $currentVersion
+     * @param string $requiredMin
+     * @param string $requiredMax
+     * @param string $currentVersion
      * @return bool
      */
     private function meetsVersionRequirements($requiredMin, $requiredMax, $currentVersion)

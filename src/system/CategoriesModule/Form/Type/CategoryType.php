@@ -16,8 +16,8 @@ use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
-use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
@@ -91,28 +91,55 @@ class CategoryType extends AbstractType
                 'mapped' => false,
                 'required' => false
             ])
+            ->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) use ($options) {
+                // ensure all display name and description exist for all locales
+                /** @var CategoryEntity $category */
+                $category = $event->getData();
+
+                $name = $category->getName();
+
+                $displayName = $category->getDisplay_name();
+                $displayDesc = $category->getDisplay_desc();
+
+                foreach ($options['locales'] as $code) {
+                    if (!isset($displayName[$code]) || !$displayName[$code]) {
+                        $displayName[$code] = $options['translator']->__(/** @Ignore */$name, 'zikula', $code);
+                    }
+                    if (!isset($displayDesc[$code])) {
+                        $displayDesc[$code] = '';
+                    }
+                }
+
+                $category->setDisplay_name($displayName);
+                $category->setDisplay_desc($displayDesc);
+
+                $event->setData($category);
+            })
             ->addEventListener(FormEvents::SUBMIT, function (FormEvent $event) use ($options) {
                 // ensure all locales have a display name
                 /** @var CategoryEntity $category */
                 $category = $event->getData();
+
                 $name = $category->getName();
                 $displayName = $category->getDisplay_name();
+
                 foreach ($options['locales'] as $code) {
                     if (!isset($displayName[$code]) || !$displayName[$code]) {
                         $displayName[$code] = $options['translator']->__(/** @Ignore */$name, 'zikula', $code);
                     }
                 }
                 $category->setDisplay_name($displayName);
+
                 $event->setData($category);
             })
         ;
         $builder->get('name')
             ->addModelTransformer(new CallbackTransformer(
                 // remove slash from name before persistence to prevent issues with path
-                function ($string) {
+                function($string) {
                     return $string;
                 },
-                function ($string) {
+                function($string) {
                     return str_replace('/', '&#47;', $string);
                 }
             ))

@@ -63,9 +63,10 @@ class CreateThemedResponseListener implements EventSubscriberInterface
         if (!($response instanceof Response)
             || is_subclass_of($response, '\Symfony\Component\HttpFoundation\Response')
             || $event->getRequest()->isXmlHttpRequest()
-            || $format != 'html'
+            || 'html' != $format
             || false === strpos($response->headers->get('Content-Type'), 'text/html')
-            || $route[0] === '_' // the profiler and other symfony routes begin with '_' @todo this is still too permissive
+            || '_' === $route[0] // the profiler and other symfony routes begin with '_' @todo this is still too permissive
+            || 500 == $response->getStatusCode() // Internal Server Error
         ) {
             return;
         }
@@ -117,6 +118,9 @@ class CreateThemedResponseListener implements EventSubscriberInterface
         $response->setContent($content);
     }
 
+    /**
+     * @param string $search
+     */
     private function readdUntrimmedBlocks($search, $replace, &$subject)
     {
         $len = strlen($search);

@@ -48,12 +48,32 @@ class ProfileExtension extends \Twig_Extension
         $this->translator = $translator;
     }
 
+    public function getFunctions()
+    {
+        return [
+            new \Twig_SimpleFunction('userAvatar', [$this, 'getUserAvatar'], ['is_safe' => ['html']])
+        ];
+    }
+
     public function getFilters()
     {
         return [
             new \Twig_SimpleFilter('profileLinkByUserId', [$this, 'profileLinkByUserId'], ['is_safe' => ['html']]),
             new \Twig_SimpleFilter('profileLinkByUserName', [$this, 'profileLinkByUserName'], ['is_safe' => ['html']])
         ];
+    }
+
+    /**
+     * Displays the avatar of a given user.
+     *
+     * @param int|string $uid        The user's id or name
+     * @param array      $parameters Any additional arguments (e.g. width, height, size, rating)
+     *
+     * @return string
+     */
+    public function getUserAvatar($uid = 0, array $parameters = [])
+    {
+        return $this->profileModuleCollector->getSelected()->getAvatar($uid, $parameters);
     }
 
     /**
@@ -125,7 +145,7 @@ class ProfileExtension extends \Twig_Extension
         if (!isset($userId) && !isset($userName)) {
             throw new \InvalidArgumentException();
         }
-        if ($userId) {
+        if (null !== $userId) {
             $user = $this->userRepository->find($userId);
         } else {
             $user = $this->userRepository->findOneBy(['uname' => $userName]);
@@ -135,6 +155,10 @@ class ProfileExtension extends \Twig_Extension
         }
 
         $userDisplayName = $this->profileModuleCollector->getSelected()->getDisplayName($user->getUid());
+        if (!$userDisplayName) {
+            $userDisplayName = $user->getUname();
+        }
+
         $class = !empty($class) ? ' class="' . htmlspecialchars($class, ENT_QUOTES) . '"' : '';
 
         if (!empty($imagePath)) {
@@ -143,12 +167,12 @@ class ProfileExtension extends \Twig_Extension
             // truncate the user name to $maxLength chars
             $length = strlen($userDisplayName);
             $truncEnd = ($maxLength > $length) ? $length : $maxLength;
-            $show  = htmlspecialchars(substr($userDisplayName, 0, $truncEnd), ENT_QUOTES);
+            $show = htmlspecialchars(substr($userDisplayName, 0, $truncEnd), ENT_QUOTES);
         } else {
             $show = htmlspecialchars($userDisplayName, ENT_QUOTES);
         }
         $href = $this->profileModuleCollector->getSelected()->getProfileUrl($user->getUid());
-        if ($href == '#') {
+        if ('#' == $href) {
             return $userDisplayName;
         }
 

@@ -9,7 +9,7 @@
  * file that was distributed with this source code.
  */
 
-namespace Zikula\UsersModule\Tests\Api;
+namespace Zikula\SecurityCenterModule\Tests\Api;
 
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Zikula\ExtensionsModule\Api\ApiInterface\VariableApiInterface;
@@ -64,7 +64,7 @@ class HtmlFilterApiTest extends \PHPUnit_Framework_TestCase
     {
         $variableApi = $this->getMockBuilder(VariableApiInterface::class)->getMock();
         $variableApi->method('getSystemVar')->willReturnCallback(
-            function ($string, $default) use ($htmlEntities, $outputFilter) {
+            function($string, $default) use ($htmlEntities, $outputFilter) {
                 switch ($string) {
                     case 'outputfilter':
                         return $outputFilter;

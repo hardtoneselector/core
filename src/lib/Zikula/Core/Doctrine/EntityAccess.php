@@ -87,7 +87,7 @@ class EntityAccess implements \ArrayAccess
             'lazyPropertiesDefaults'
         ];
 
-        while ($r !== false) {
+        while (false !== $r) {
             $properties = $r->getProperties();
             $r = $r->getParentClass();
 
@@ -128,7 +128,7 @@ class EntityAccess implements \ArrayAccess
             return $getMethod;
         }
 
-        $isMethod  = 'is' . ucfirst($name);
+        $isMethod = 'is' . ucfirst($name);
         if (method_exists($this, $isMethod)) {
             return $isMethod;
         }

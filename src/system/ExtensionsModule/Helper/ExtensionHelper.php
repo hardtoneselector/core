@@ -15,7 +15,6 @@ use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\DependencyInjection\ContainerAwareInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Zikula\Bundle\CoreBundle\Bundle\Scanner;
 use Zikula\Bundle\CoreBundle\Console\Application;
 use Zikula\Bundle\CoreBundle\HttpKernel\ZikulaKernel;
 use Zikula\Common\Translator\TranslatorInterface;
@@ -31,6 +30,7 @@ use Zikula\ExtensionsModule\ExtensionEvents;
 class ExtensionHelper
 {
     const TYPE_SYSTEM = 3;
+
     const TYPE_MODULE = 2;
 
     /**
@@ -63,13 +63,13 @@ class ExtensionHelper
      */
     public function install(ExtensionEntity $extension)
     {
-        if ($extension->getState() == Constant::STATE_NOTALLOWED) {
+        if (Constant::STATE_NOTALLOWED == $extension->getState()) {
             throw new \RuntimeException($this->translator->__f('Error! No permission to install %s.', ['%s' => $extension->getName()]));
         } elseif ($extension->getState() > 10) {
             throw new \RuntimeException($this->translator->__f('Error! %s is not compatible with this version of Zikula.', ['%s' => $extension->getName()]));
         }
 
-        $bundle = $this->forceLoadExtension($extension);
+        $bundle = $this->container->get('kernel')->getBundle($extension->getName());
 
         $installer = $this->getExtensionInstallerInstance($bundle);
         $result = $installer->install();
@@ -100,21 +100,16 @@ class ExtensionHelper
         switch ($extension->getState()) {
             case Constant::STATE_NOTALLOWED:
                 throw new \RuntimeException($this->translator->__f('Error! Not allowed to upgrade %s.', ['%s' => $extension->getDisplayname()]));
-                break;
+
             default:
                 if ($extension->getState() > 10) {
                     throw new \RuntimeException($this->translator->__f('Error! %s is not compatible with this version of Zikula.', ['%s' => $extension->getDisplayname()]));
                 }
         }
 
-        if ($extension->getType() == self::TYPE_SYSTEM) {
-            // system modules are always loaded
-            $bundle = $this->container->get('kernel')->getModule($extension->getName());
-        } else {
-            $bundle = $this->forceLoadExtension($extension);
-        }
+        $bundle = $this->container->get('kernel')->getModule($extension->getName());
 
-        // @TODO: Need to check status of Dependencies here to be sure they are met for upgraded extension.
+        // Check status of Dependencies here to be sure they are met for upgraded extension. #3647
 
         $installer = $this->getExtensionInstallerInstance($bundle);
         $result = $installer->upgrade($extension->getVersion());
@@ -126,9 +121,11 @@ class ExtensionHelper
             }
 
             return false;
-        } elseif (true !== $result) {
+        }
+        if (true !== $result) {
             return false;
         }
+
         // persist the updated version
         $newVersion = $bundle->getMetaData()->getVersion();
         $extension->setVersion($newVersion);
@@ -155,11 +152,11 @@ class ExtensionHelper
      */
     public function uninstall(ExtensionEntity $extension)
     {
-        if ($extension->getState() == Constant::STATE_NOTALLOWED
+        if (Constant::STATE_NOTALLOWED == $extension->getState()
             || (ZikulaKernel::isCoreModule($extension->getName()))) {
             throw new \RuntimeException($this->translator->__f('Error! No permission to uninstall %s.', ['%s' => $extension->getDisplayname()]));
         }
-        if ($extension->getState() == Constant::STATE_UNINITIALISED) {
+        if (Constant::STATE_UNINITIALISED == $extension->getState()) {
             throw new \RuntimeException($this->translator->__f('Error! %s is not yet installed, therefore it cannot be uninstalled.', ['%s' => $extension->getDisplayname()]));
         }
 
@@ -170,11 +167,7 @@ class ExtensionHelper
             return false;
         }
 
-        $bundle = $this->forceLoadExtension($extension);
-
-        // remove hooks
-        $this->container->get('zikula_hook_bundle.api.hook')->uninstallProviderHooks($bundle->getMetaData());
-        $this->container->get('zikula_hook_bundle.api.hook')->uninstallSubscriberHooks($bundle->getMetaData());
+        $bundle = $this->container->get('kernel')->getBundle($extension->getName());
 
         $installer = $this->getExtensionInstallerInstance($bundle);
         $result = $installer->uninstall();
@@ -241,41 +234,7 @@ class ExtensionHelper
     }
 
     /**
-     * Get an instance of a bundle class that is not currently loaded into the kernel.
-     * Extensions that are deactivated or uninstalled are NOT loaded into the kernel.
-     * Note: All System modules are always loaded into the kernel.
-     *
-     * @param ExtensionEntity $extension
-     * @return null|AbstractBundle
-     */
-    private function forceLoadExtension(ExtensionEntity $extension)
-    {
-        $osDir = $extension->getDirectory();
-        $scanner = new Scanner();
-        $directory = ZikulaKernel::isCoreModule($extension->getName()) ? 'system' : 'modules';
-        $scanner->scan(["$directory/$osDir"], 1);
-        $modules = $scanner->getModulesMetaData(true);
-        /** @var $moduleMetaData \Zikula\Bundle\CoreBundle\Bundle\MetaData */
-        $moduleMetaData = !empty($modules[$extension->getName()]) ? $modules[$extension->getName()] : null;
-        if (null !== $moduleMetaData) {
-            // moduleMetaData only exists for bundle-type modules
-            $boot = new \Zikula\Bundle\CoreBundle\Bundle\Bootstrap();
-            $boot->addAutoloaders($this->container->get('kernel'), $moduleMetaData->getAutoload());
-            $moduleClass = $moduleMetaData->getClass();
-            $bundle = new $moduleClass();
-            $bootstrap = $bundle->getPath() . "/bootstrap.php";
-            if (file_exists($bootstrap)) {
-                include_once $bootstrap;
-            }
-
-            return $bundle;
-        }
-
-        return null;
-    }
-
-    /**
-     * Run the console command app/console assets:install
+     * Run the console command assets:install
      *
      * @throws \Exception
      */

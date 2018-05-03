@@ -20,6 +20,8 @@ use Symfony\Bridge\Doctrine\Form\DoctrineOrmExtension;
 use Symfony\Bridge\Doctrine\Test\DoctrineTestHelper;
 use Symfony\Component\Form\PreloadedExtension;
 use Symfony\Component\Form\Test\TypeTestCase;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Zikula\CategoriesModule\Entity\CategoryEntity;
 use Zikula\CategoriesModule\Entity\CategoryRegistryEntity;
 use Zikula\CategoriesModule\Form\Type\CategoriesType;
@@ -83,7 +85,14 @@ class CategoriesTypeTest extends TypeTestCase
 
     protected function getExtensions()
     {
-        $type = new CategoriesType($this->em->getRepository(CategoryRegistryEntity::class));
+        $request = new Request([], [], [], [], [], [], json_encode([
+            'foo' => 'bar'
+        ]));
+
+        $requestStack = new RequestStack();
+        $requestStack->push($request);
+
+        $type = new CategoriesType($this->em->getRepository(CategoryRegistryEntity::class), $requestStack);
 
         return [
             new PreloadedExtension([$type], []),
@@ -385,6 +394,9 @@ class CategoriesTypeTest extends TypeTestCase
         }
     }
 
+    /**
+     * @param string $name
+     */
     protected function createRegistryMock($name, $em)
     {
         $registry = $this->getMockBuilder(ManagerRegistry::class)->getMock();
@@ -396,6 +408,9 @@ class CategoriesTypeTest extends TypeTestCase
         return $registry;
     }
 
+    /**
+     * @param \DateTime $now
+     */
     protected function generateCategoryRegistry($now)
     {
         $registry = new CategoryRegistryEntity();
@@ -411,6 +426,9 @@ class CategoriesTypeTest extends TypeTestCase
         $this->em->flush();
     }
 
+    /**
+     * @param \DateTime $now
+     */
     protected function generateCategories($now)
     {
         // root

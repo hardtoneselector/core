@@ -14,8 +14,8 @@ namespace Zikula\ZAuthModule\Helper;
 use Doctrine\ORM\EntityManager;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
-use Symfony\Component\Validator\Constraints\NotNull;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
+use Symfony\Component\Validator\Constraints\NotNull;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Zikula\Common\Translator\TranslatorInterface;
 use Zikula\Common\Translator\TranslatorTrait;
@@ -111,6 +111,9 @@ class FileIOHelper
         $this->passwordApi = $passwordApi;
     }
 
+    /**
+     * @param TranslatorInterface $translator
+     */
     public function setTranslator($translator)
     {
         $this->translator = $translator;
@@ -186,7 +189,7 @@ class FileIOHelper
             // validate activation value
             $importValues[$counter - 1]['activated'] = isset($importValues[$counter - 1]['activated']) ? (int)$importValues[$counter - 1]['activated'] : UsersConstant::ACTIVATED_ACTIVE;
             $activated = $importValues[$counter - 1]['activated'];
-            if (($activated != UsersConstant::ACTIVATED_INACTIVE) && ($activated != UsersConstant::ACTIVATED_ACTIVE)) {
+            if ((UsersConstant::ACTIVATED_INACTIVE != $activated) && (UsersConstant::ACTIVATED_ACTIVE != $activated)) {
                 return $this->locateErrors($this->__('Error! The CSV is not valid: the "activated" column must contain 0 or 1 only.'), 'activated', $counter);
             }
 
@@ -262,10 +265,16 @@ class FileIOHelper
                 $groups[$group]->addUser($user);
             }
             $this->entityManager->persist($user);
-            $this->entityManager->flush();
-            $eventName = $importValue['activated'] ? UserEvents::CREATE_ACCOUNT : RegistrationEvents::CREATE_REGISTRATION;
-            $this->eventDispatcher->dispatch($eventName, new GenericEvent($user));
             $importValues[$k]['unHashedPass'] = $unHashedPass;
+            $importValues[$k]['userReference'] = $user;
+        }
+        $this->entityManager->flush();
+
+        // post processing
+        foreach ($importValues as $k => $importValue) {
+            $eventName = $importValue['activated'] ? UserEvents::CREATE_ACCOUNT : RegistrationEvents::CREATE_REGISTRATION;
+            $user = $importValue['userReference'];
+            $this->eventDispatcher->dispatch($eventName, new GenericEvent($user));
         }
 
         return true;
@@ -274,8 +283,8 @@ class FileIOHelper
     /**
      * Convert errors to string and add current line.
      * @param $errors
-     * @param $type
-     * @param $line
+     * @param string $type
+     * @param integer $line
      * @return string
      */
     private function locateErrors($errors, $type, $line)

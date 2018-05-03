@@ -45,14 +45,18 @@ class InstallUpgradeCheckListener implements EventSubscriberInterface
             $requiresUpgrade = $installed && version_compare($currentVersion, ZikulaKernel::VERSION, '<');
         }
 
-        $routeInfo = $this->container->get('router')->match($request->getPathInfo());
-        $containsInstall = $routeInfo['_route'] == 'install';
-        $containsUpgrade = $routeInfo['_route'] == 'upgrade';
-        $containsLogin = $routeInfo['_controller'] == 'Zikula\\UsersModule\\Controller\\AccessController::loginAction';
-        $containsDoc = $routeInfo['_route'] == 'doc';
-        $containsWdt =  $routeInfo['_route'] == '_wdt';
-        $containsProfiler = strpos($routeInfo['_route'], '_profiler') !== false;
-        $containsRouter = $routeInfo['_route'] == 'fos_js_routing_js';
+        try {
+            $routeInfo = $this->container->get('router')->match($request->getPathInfo());
+        } catch (\Exception $e) {
+            return;
+        }
+        $containsInstall = 'install' == $routeInfo['_route'];
+        $containsUpgrade = 'upgrade' == $routeInfo['_route'];
+        $containsLogin = 'Zikula\\UsersModule\\Controller\\AccessController::loginAction' == $routeInfo['_controller'];
+        $containsDoc = 'doc' == $routeInfo['_route'];
+        $containsWdt =  '_wdt' == $routeInfo['_route'];
+        $containsProfiler = false !== strpos($routeInfo['_route'], '_profiler');
+        $containsRouter = 'fos_js_routing_js' == $routeInfo['_route'];
         $doNotRedirect = $containsProfiler || $containsWdt || $containsRouter || $request->isXmlHttpRequest();
 
         // check if Zikula Core is not installed

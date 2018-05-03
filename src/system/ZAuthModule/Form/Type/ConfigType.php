@@ -42,7 +42,7 @@ class ConfigType extends AbstractType
                 'help' => $options['translator']->__('This affects both passwords created during registration, as well as passwords modified by users or administrators. Enter an integer greater than zero.'),
                 'constraints' => [
                     new NotBlank(),
-                    new GreaterThanOrEqual(['value' => 3]) // @todo
+                    new GreaterThanOrEqual(['value' => 5])
                 ]
             ])
             ->add(ZAuthConstant::MODVAR_HASH_METHOD, ChoiceType::class, [
@@ -51,7 +51,7 @@ class ConfigType extends AbstractType
                 'choices' => [
                     'SHA1'  => 'sha1',
                     'SHA256' => 'sha256',
-                    // @todo bcrypt
+                    // add bcrypt #2842
                 ]
             ])
             ->add(ZAuthConstant::MODVAR_PASSWORD_STRENGTH_METER_ENABLED, CheckboxType::class, [
@@ -132,7 +132,7 @@ class ConfigType extends AbstractType
             /**
              * Form Listeners
              */
-            ->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event) {
+            ->addEventListener(FormEvents::POST_SUBMIT, function(FormEvent $event) {
                 $data = $event->getData();
                 // clear anti-spam answer if there is no question
                 if (empty($data[ZAuthConstant::MODVAR_REGISTRATION_ANTISPAM_QUESTION])) {
@@ -160,9 +160,9 @@ class ConfigType extends AbstractType
             'translator' => null,
             'constraints' => [
                 new Callback([
-                    'callback' => function ($data, ExecutionContextInterface $context) {
+                    'callback' => function($data, ExecutionContextInterface $context) {
                         if (!empty($data[ZAuthConstant::MODVAR_REGISTRATION_ANTISPAM_QUESTION]) && empty($data[ZAuthConstant::MODVAR_REGISTRATION_ANTISPAM_ANSWER])) {
-                            $context->buildViolation(__('If a spam protection question is provided, then a spam protection answer must also be provided.'))
+                            $context->buildViolation('If a spam protection question is provided, then a spam protection answer must also be provided.')
                                 ->atPath(ZAuthConstant::MODVAR_REGISTRATION_ANTISPAM_ANSWER)
                                 ->addViolation();
                         }

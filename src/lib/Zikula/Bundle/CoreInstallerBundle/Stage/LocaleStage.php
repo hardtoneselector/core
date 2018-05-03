@@ -45,7 +45,7 @@ class LocaleStage implements StageInterface, FormHandlerInterface, InjectContain
     public function __construct(ContainerInterface $container)
     {
         $this->container = $container;
-        $this->yamlManager = new YamlDumper($this->container->get('kernel')->getRootDir() .'/config', 'custom_parameters.yml', 'parameters.yml');
+        $this->yamlManager = new YamlDumper($this->container->get('kernel')->getRootDir() . '/config', 'custom_parameters.yml', 'parameters.yml');
         $this->installedLocales = $container->get('zikula_settings_module.locale_api')->getSupportedLocales();
         $this->matchedLocale = $container->get('zikula_settings_module.locale_api')->getBrowserLocale();
     }
@@ -76,7 +76,7 @@ class LocaleStage implements StageInterface, FormHandlerInterface, InjectContain
 
     public function isNecessary()
     {
-        if (count($this->installedLocales) == 1) {
+        if (1 == count($this->installedLocales)) {
             $defaultLocale = array_values($this->installedLocales)[0];
             $this->writeParams(['locale' => $defaultLocale]);
 
@@ -105,12 +105,6 @@ class LocaleStage implements StageInterface, FormHandlerInterface, InjectContain
         } catch (IOException $e) {
             throw new AbortStageException($this->container->get('translator.default')->__f('Cannot write parameters to %s file.', ['%s' => 'custom_parameters.yml']));
         }
-        // setup multilingual
-        $this->container->setParameter('language_i18n', $data['locale']);
-        $this->container->setParameter('locale', $data['locale']);
-        $this->container->setParameter('multilingual', true);
-        $this->container->setParameter('languageurl', true);
-        $this->container->setParameter('language_detect', false);
         // clear container cache
         $this->container->get('zikula.cache_clearer')->clear('symfony.config');
     }

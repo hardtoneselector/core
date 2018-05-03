@@ -23,7 +23,7 @@ class SearchController extends AbstractController
 {
     /**
      * @Route("/{page}", requirements={"page"="\d+"})
-     * @Template
+     * @Template("ZikulaSearchModule:Search:execute.html.twig")
      *
      * @param Request $request
      * @param int $page
@@ -46,7 +46,7 @@ class SearchController extends AbstractController
         }
         $searchableModules = $this->get('zikula_search_module.internal.searchable_module_collector')->getAll();
 
-        if (count($searchableModules) == 0) {
+        if (0 == count($searchableModules)) {
             return $this->render('@ZikulaSearchModule/Search/unsearchable.html.twig');
         }
 
@@ -68,7 +68,7 @@ class SearchController extends AbstractController
             $moduleFormBuilder->add($moduleName, 'Zikula\SearchModule\Form\Type\AmendableModuleSearchType', [
                 'label' => $this->get('kernel')->getModule($moduleName)->getMetaData()->getDisplayName(),
                 'translator' => $this->getTranslator(),
-                'active' => !$setActiveDefaults || (isset($activeModules[$moduleName]) && ($activeModules[$moduleName] == 1)),
+                'active' => !$setActiveDefaults || (isset($activeModules[$moduleName]) && (1 == $activeModules[$moduleName])),
                 'permissionApi' => $this->get('zikula_permissions_module.api.permission')
             ]);
             $searchableInstance->amendForm($moduleFormBuilder->get($moduleName));
@@ -77,13 +77,8 @@ class SearchController extends AbstractController
             'translator' => $this->get('translator.default'),
         ]);
         $form->add($moduleFormBuilder->getForm());
-        $q = $request->query->get('q', '');
-        if ($request->isMethod('GET') && !empty($q)) {
-            $token = $request->query->get('_token');
-            $form->submit(['q' => $q, '_token' => $token]);
-        } else {
-            $form->handleRequest($request);
-        }
+
+        $form->handleRequest($request);
         $noResultsFound = false;
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -121,7 +116,7 @@ class SearchController extends AbstractController
 
     /**
      * @Route("/recent")
-     * @Template
+     * @Template("ZikulaSearchModule:Search:recent.html.twig")
      *
      * Display a list of recent searches
      *
@@ -169,7 +164,6 @@ class SearchController extends AbstractController
         $templateParameters = [
             'siteName' => $variableApi->getSystemVar('sitename', $variableApi->getSystemVar('sitename_en')),
             'slogan' => $variableApi->getSystemVar('slogan', $variableApi->getSystemVar('slogan_en')),
-            'metaKeywords' => $variableApi->getSystemVar('metakeywords', $variableApi->getSystemVar('metakeywords_en')),
             'adminMail' => $variableApi->getSystemVar('adminmail'),
             'hasAdultContent' => $variableApi->get('ZikulaSearchModule', 'opensearch_adult_content', false)
         ];

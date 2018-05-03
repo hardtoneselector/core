@@ -191,10 +191,10 @@ class MailHelper
      */
     public function mailUsers(array $users, array $messageData)
     {
-        $mailSent = false;
+        $mailSent = true;
         $message = \Swift_Message::newInstance();
         $message->setFrom([$messageData['replyto'] => $messageData['from']]);
-        if (count($users) == 1) {
+        if (1 == count($users)) {
             $message->setTo([$users[0]->getEmail() => $users[0]->getUname()]);
         } else {
             $message->setTo([$messageData['replyto'] => $messageData['from']]);
@@ -207,13 +207,13 @@ class MailHelper
                 $bcc[] = $user->getEmail();
                 if (count($bcc) == $messageData['batchsize']) {
                     $message->setBcc($bcc);
-                    $mailSent = $mailSent && $this->mailerApi->sendMessage($message, null, null, '', $messageData['format'] == 'html');
+                    $mailSent = $mailSent && $this->mailerApi->sendMessage($message, null, null, '', 'html' == $messageData['format']);
                     $bcc = [];
                 }
             }
             $message->setBcc($bcc);
         }
-        $mailSent = $mailSent && $this->mailerApi->sendMessage($message, null, null, '', $messageData['format'] == 'html');
+        $mailSent = $mailSent && $this->mailerApi->sendMessage($message, null, null, '', 'html' == $messageData['format']);
 
         return $mailSent;
     }
@@ -269,18 +269,19 @@ class MailHelper
             case 'regadminnotify':
                 if (!$templateArgs['reginfo']->isApproved()) {
                     return $this->translator->__f('New registration pending approval: %s', ['%s' => $templateArgs['reginfo']['uname']]);
-                } elseif (isset($templateArgs['isVerified']) && !$templateArgs['isVerified']) {
-                    return $this->translator->__f('New registration pending e-mail verification: %s', ['%s' => $templateArgs['reginfo']['uname']]);
-                } else {
-                    return $this->translator->__f('New user activated: %s', ['%s' => $templateArgs['reginfo']['uname']]);
                 }
-                break;
+                if (isset($templateArgs['isVerified']) && !$templateArgs['isVerified']) {
+                    return $this->translator->__f('New registration pending e-mail verification: %s', ['%s' => $templateArgs['reginfo']['uname']]);
+                }
+
+                return $this->translator->__f('New user activated: %s', ['%s' => $templateArgs['reginfo']['uname']]);
+
             case 'regdeny':
                 return $this->translator->__f('Your recent request at %s.', ['%s' => $siteName]);
-                break;
+
             case 'welcome':
                 return $this->translator->__f('Welcome to %1$s, %2$s!', ['%1$s' => $siteName, '%2$s' => $templateArgs['reginfo']['uname']]);
-                break;
+
             default:
                 return $this->translator->__f('A message from %s.', ['%s' => $siteName]);
         }

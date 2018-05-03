@@ -26,9 +26,9 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Zikula\Core\Controller\AbstractController;
 use Zikula\Core\Event\GenericEvent;
+use Zikula\ExtensionsModule\Api\VariableApi;
 use Zikula\ExtensionsModule\ExtensionEvents;
 use Zikula\ThemeModule\Engine\Annotation\Theme;
-use Zikula\ExtensionsModule\Api\VariableApi;
 use Zikula\ThemeModule\Entity\Repository\ThemeEntityRepository;
 
 /**
@@ -41,7 +41,7 @@ class ThemeController extends AbstractController
      * @Route("/view")
      * @Method("GET")
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaThemeModule:Theme:view.html.twig")
      *
      * view all themes
      *
@@ -99,7 +99,7 @@ class ThemeController extends AbstractController
     /**
      * @Route("/makedefault/{themeName}")
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaThemeModule:Theme:setAsDefault.html.twig")
      *
      * set theme as default for site
      *
@@ -159,7 +159,7 @@ class ThemeController extends AbstractController
     /**
      * @Route("/delete/{themeName}")
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaThemeModule:Theme:delete.html.twig")
      *
      * delete a theme
      *
@@ -217,14 +217,13 @@ class ThemeController extends AbstractController
                         $this->addFlash('danger', $this->__('Could not remove files as requested.') . ' (' . $e->getMessage() . ') ' . $this->__('The files must be removed manually.'));
                     }
                 }
+
+                // remove any theme vars
+                $this->get('zikula_extensions_module.api.variable')->delAll($themeName);
+
                 // remove theme
                 $this->getDoctrine()->getManager()->remove($themeEntity);
-                // remove any theme vars
-                $vars = $this->get('zikula_extensions_module.api.variable')->getAll($themeName);
-                foreach ($vars as $var) {
-                    $this->getDoctrine()->getManager()->remove($var);
-                }
-                $this->getDoctrine()->getManager()->flush();
+
                 // clear all caches
                 $this->get('zikula.cache_clearer')->clear('twig');
                 $this->get('zikula.cache_clearer')->clear('symfony.config');
@@ -247,7 +246,7 @@ class ThemeController extends AbstractController
      * @Route("/credits/{themeName}")
      * @Method("GET")
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaThemeModule:Theme:credits.html.twig")
      *
      * display the theme credits
      *

@@ -26,7 +26,7 @@ class LinkContainer implements LinkContainerInterface
     private $translator;
 
     /**
-     * @var VariableApiInterface
+     * @var RouterInterface
      */
     private $router;
 
@@ -36,7 +36,7 @@ class LinkContainer implements LinkContainerInterface
     private $permissionApi;
 
     /**
-     * @var VariableApi
+     * @var VariableApiInterface
      */
     private $variableApi;
 
@@ -65,9 +65,8 @@ class LinkContainer implements LinkContainerInterface
      */
     public function getLinks($type = LinkContainerInterface::TYPE_ADMIN)
     {
-        $method = 'get' . ucfirst(strtolower($type));
-        if (method_exists($this, $method)) {
-            return $this->$method();
+        if (LinkContainerInterface::TYPE_ADMIN == $type) {
+            return $this->getAdmin();
         }
 
         return [];
@@ -117,7 +116,7 @@ class LinkContainer implements LinkContainerInterface
         ];
 
         $outputfilter = $this->variableApi->getSystemVar('outputfilter');
-        if ($outputfilter == 1) {
+        if (1 == $outputfilter) {
             $links[] = [
                 'url' => $this->router->generate('zikulasecuritycentermodule_config_purifierconfig'),
                 'text' => $this->translator->__('HTMLPurifier settings'),

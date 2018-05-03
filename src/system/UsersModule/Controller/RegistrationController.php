@@ -26,10 +26,14 @@ use Zikula\Core\Event\GenericEvent;
 use Zikula\UsersModule\AuthenticationMethodInterface\NonReEntrantAuthenticationMethodInterface;
 use Zikula\UsersModule\AuthenticationMethodInterface\ReEntrantAuthenticationMethodInterface;
 use Zikula\UsersModule\Constant as UsersConstant;
-use Zikula\UsersModule\Container\HookContainer;
 use Zikula\UsersModule\Entity\UserEntity;
+use Zikula\UsersModule\Event\UserFormAwareEvent;
+use Zikula\UsersModule\Event\UserFormDataEvent;
 use Zikula\UsersModule\Exception\InvalidAuthenticationMethodRegistrationFormException;
+use Zikula\UsersModule\Form\Type\RegistrationType\DefaultRegistrationType;
+use Zikula\UsersModule\HookSubscriber\RegistrationUiHooksSubscriber;
 use Zikula\UsersModule\RegistrationEvents;
+use Zikula\UsersModule\UserEvents;
 
 /**
  * Class RegistrationController
@@ -67,7 +71,7 @@ class RegistrationController extends AbstractController
                 'path' => 'zikulausersmodule_registration_register'
             ]);
         } else {
-            if (empty($selectedMethod) && count($authenticationMethodCollector->getActiveKeys()) == 1) {
+            if (empty($selectedMethod) && 1 == count($authenticationMethodCollector->getActiveKeys())) {
                 $selectedMethod = $authenticationMethodCollector->getActiveKeys()[0];
             }
             $request->getSession()->set('authenticationMethod', $selectedMethod); // save method to session for reEntrant needs
@@ -92,33 +96,34 @@ class RegistrationController extends AbstractController
                 ];
             }
         }
+        $dispatcher = $this->get('event_dispatcher');
+        $hookDispatcher = $this->get('hook_dispatcher');
 
         $formClassName = ($authenticationMethod instanceof NonReEntrantAuthenticationMethodInterface)
             ? $authenticationMethod->getRegistrationFormClassName()
-            : 'Zikula\UsersModule\Form\RegistrationType\DefaultRegistrationType';
+            : DefaultRegistrationType::class;
         $form = $this->createForm($formClassName, $userData);
         if (!$form->has('uname') || !$form->has('email')) {
             throw new InvalidAuthenticationMethodRegistrationFormException();
         }
-        $hasListeners = $this->get('event_dispatcher')->hasListeners(RegistrationEvents::NEW_FORM);
-        $hookBindings = $this->get('hook_dispatcher')->getBindingsFor('subscriber.users.ui_hooks.registration');
-        if ($authenticationMethod instanceof ReEntrantAuthenticationMethodInterface && !empty($userData) && !$hasListeners && count($hookBindings) == 0) {
+        $hasListeners = $dispatcher->hasListeners(UserEvents::EDIT_FORM);
+        $hookBindings = $hookDispatcher->getBindingsFor('subscriber.users.ui_hooks.registration');
+        if ($authenticationMethod instanceof ReEntrantAuthenticationMethodInterface && !empty($userData) && !$hasListeners && 0 == count($hookBindings)) {
             // skip form display and process immediately.
             $userData['_token'] = $this->get('security.csrf.token_manager')->getToken($form->getName())->getValue();
             $userData['submit'] = true;
             $form->submit($userData);
         } else {
+            $formEvent = new UserFormAwareEvent($form);
+            $dispatcher->dispatch(UserEvents::EDIT_FORM, $formEvent);
             $form->handleRequest($request);
         }
 
         if ($form->isSubmitted() && $form->isValid()) {
             if ($form->get('submit')->isClicked()) {
-                $event = new GenericEvent($form->getData(), [], new ValidationProviders());
-                $validators = $this->get('event_dispatcher')->dispatch(RegistrationEvents::NEW_VALIDATE, $event)->getData();
-
                 // Validate the hook
-                $hook = new ValidationHook($validators);
-                $this->get('hook_dispatcher')->dispatch(HookContainer::REGISTRATION_VALIDATE, $hook);
+                $hook = new ValidationHook(new ValidationProviders());
+                $hookDispatcher->dispatch(RegistrationUiHooksSubscriber::REGISTRATION_VALIDATE, $hook);
                 $validators = $hook->getValidators();
 
                 if (!$validators->hasErrors()) {
@@ -145,20 +150,21 @@ class RegistrationController extends AbstractController
                         // revert registration
                         $this->addFlash('error', $this->__('The registration process failed.'));
                         $this->get('zikula_users_module.user_repository')->removeAndFlush($userEntity);
-                        $this->get('event_dispatcher')->dispatch(RegistrationEvents::DELETE_REGISTRATION, new GenericEvent($userEntity->getUid()));
+                        $dispatcher->dispatch(RegistrationEvents::DELETE_REGISTRATION, new GenericEvent($userEntity->getUid()));
 
                         return $this->redirectToRoute('zikulausersmodule_registration_register'); // try again.
                     }
-                    $this->get('event_dispatcher')->dispatch(RegistrationEvents::NEW_PROCESS, new GenericEvent($userEntity));
-                    $this->get('hook_dispatcher')->dispatch(HookContainer::REGISTRATION_PROCESS, new ProcessHook($userEntity->getUid()));
+                    $formDataEvent = new UserFormDataEvent($userEntity, $form);
+                    $dispatcher->dispatch(UserEvents::EDIT_FORM_HANDLE, $formDataEvent);
+                    $hookDispatcher->dispatch(RegistrationUiHooksSubscriber::REGISTRATION_PROCESS, new ProcessHook($userEntity->getUid()));
 
                     // Register the appropriate status or error to be displayed to the user, depending on the account's activated status.
-                    $canLogIn = $userEntity->getActivated() == UsersConstant::ACTIVATED_ACTIVE;
+                    $canLogIn = UsersConstant::ACTIVATED_ACTIVE == $userEntity->getActivated();
                     $autoLogIn = $this->getVar(UsersConstant::MODVAR_REGISTRATION_AUTO_LOGIN, UsersConstant::DEFAULT_REGISTRATION_AUTO_LOGIN);
                     $this->generateRegistrationFlashMessage($userEntity->getActivated(), $autoLogIn);
 
                     // Notify that we are completing a registration session.
-                    $event = $this->get('event_dispatcher')->dispatch(RegistrationEvents::REGISTRATION_SUCCEEDED, new GenericEvent($userEntity, ['redirectUrl' => '']));
+                    $event = $dispatcher->dispatch(RegistrationEvents::REGISTRATION_SUCCEEDED, new GenericEvent($userEntity, ['redirectUrl' => '']));
                     $redirectUrl = $event->hasArgument('redirectUrl') ? $event->getArgument('redirectUrl') : '';
 
                     if ($autoLogIn && $this->get('zikula_users_module.helper.access_helper')->loginAllowed($userEntity)) {
@@ -178,7 +184,7 @@ class RegistrationController extends AbstractController
         }
 
         // Notify that we are beginning a registration session.
-        $this->get('event_dispatcher')->dispatch(RegistrationEvents::REGISTRATION_STARTED, new GenericEvent());
+        $dispatcher->dispatch(RegistrationEvents::REGISTRATION_STARTED, new GenericEvent());
 
         $templateName = ($authenticationMethod instanceof NonReEntrantAuthenticationMethodInterface)
             ? $authenticationMethod->getRegistrationTemplateName()
@@ -186,6 +192,7 @@ class RegistrationController extends AbstractController
 
         return $this->render($templateName, [
             'form' => $form->createView(),
+            'additional_templates' => isset($formEvent) ? $formEvent->getTemplates() : []
         ]);
     }
 
@@ -218,9 +225,9 @@ class RegistrationController extends AbstractController
      */
     private function generateRegistrationFlashMessage($activatedStatus, $autoLogIn = false)
     {
-        if ($activatedStatus == UsersConstant::ACTIVATED_PENDING_REG) {
+        if (UsersConstant::ACTIVATED_PENDING_REG == $activatedStatus) {
             $this->addFlash('status', $this->__('Done! Your registration request has been saved and is pending. Please check your e-mail periodically for a message from us.'));
-        } elseif ($activatedStatus == UsersConstant::ACTIVATED_ACTIVE) {
+        } elseif (UsersConstant::ACTIVATED_ACTIVE == $activatedStatus) {
             // The account is saved, and is active.
             if ($autoLogIn) {
                 // No errors and auto-login is turned on. A simple post-log-in message.

@@ -57,7 +57,7 @@ class HtmlFilterApi implements HtmlFilterApiInterface
         if (!$this->installed) {
             return $value;
         }
-        if (php_sapi_name() !== 'cli') {
+        if ('cli' !== php_sapi_name()) {
             // don't use static vars when testing
             static $allowedTags = null;
             static $outputFilter;
@@ -93,7 +93,7 @@ class HtmlFilterApi implements HtmlFilterApiInterface
             // Fix the HTML that we want
             $value = preg_replace_callback(
                 '#\022([^\024]*)\024#',
-                    function ($matches) {
+                    function($matches) {
                         if (!$matches) {
                             return;
                         }
@@ -117,8 +117,8 @@ class HtmlFilterApi implements HtmlFilterApiInterface
         $allowableHTML = $this->variableApi->getSystemVar('AllowableHTML');
         if (is_array($allowableHTML)) {
             foreach ($allowableHTML as $k => $v) {
-                if ($k == '!--') {
-                    if ($v != self::TAG_NOT_ALLOWED) {
+                if ('!--' == $k) {
+                    if (self::TAG_NOT_ALLOWED != $v) {
                         $allowedHTML[] = "$k.*?--";
                     }
                 } else {

@@ -153,7 +153,7 @@ class MailerApi implements MailerApiInterface
 
         // add body with formatting
         $bodyFormat = 'text/plain';
-        if (!empty($altBody) || ((bool) $html) || $this->dataValues['html']) {
+        if (!empty($altBody) || ((bool)$html) || $this->dataValues['html']) {
             $bodyFormat = 'text/html';
         }
         if (isset($body)) {
@@ -218,7 +218,7 @@ class MailerApi implements MailerApiInterface
     {
         foreach ($attachments as $attachment) {
             if (is_array($attachment)) {
-                if (count($attachment) != 4) {
+                if (4 != count($attachment)) {
                     // skip invalid arrays
                     continue;
                 }
@@ -237,7 +237,7 @@ class MailerApi implements MailerApiInterface
     private function addStringAttachments(array $attachments)
     {
         foreach ($attachments as $attachment) {
-            if (is_array($attachment) && count($attachment) == 4) {
+            if (is_array($attachment) && 4 == count($attachment)) {
                 $this->message->attach(Swift_Attachment::fromPath($attachment[0], $attachment[3])->setFilename($attachment[1]));
             }
         }
@@ -265,6 +265,7 @@ class MailerApi implements MailerApiInterface
         $logFile = $this->kernel->getLogDir() . '/mailer.log';
         $event = new GenericEvent($this->message);
 
+        $failedEmails = [];
         if (!$this->mailer->send($this->message, $failedEmails)) {
             // message was not sent successfully, do error handling
 

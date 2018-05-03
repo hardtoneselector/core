@@ -12,8 +12,8 @@
 namespace Zikula\Bundle\CoreBundle\Translation\Dumper;
 
 use JMS\TranslationBundle\Model\Message;
-use JMS\TranslationBundle\Util\Writer;
 use JMS\TranslationBundle\Translation\Dumper\ArrayStructureDumper;
+use JMS\TranslationBundle\Util\Writer;
 
 class PotDumper extends ArrayStructureDumper
 {
@@ -62,7 +62,7 @@ class PotDumper extends ArrayStructureDumper
     {
         $isFirst = true;
         foreach ($structure as $k => $v) {
-            if ($isMessage = $v instanceof Message) {
+            if ($v instanceof Message) {
                 /** @var Message $v */
                 $desc = $v->getDesc();
                 $meaning = $v->getMeaning();
@@ -75,10 +75,10 @@ class PotDumper extends ArrayStructureDumper
                     $this->writer->writeln('#: ' . $source);
                 }
                 if ($desc) {
-                    $this->writer->writeln('# Desc: '.$desc);
+                    $this->writer->writeln('# Desc: ' . $desc);
                 }
                 if ($meaning) {
-                    $this->writer->writeln('# Meaning: '.$meaning);
+                    $this->writer->writeln('# Meaning: ' . $meaning);
                 }
                 $this->writer->writeln('msgid "' . $v->getId() . '"')
                     ->writeln('msgstr ""');

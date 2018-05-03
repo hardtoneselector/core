@@ -11,25 +11,25 @@
 
 namespace Zikula\Bundle\CoreBundle\Tests\Translation;
 
-use JMS\TranslationBundle\Translation\FileSourceFactory;
-use Psr\Log\LoggerInterface;
-use Symfony\Bridge\Twig\Form\TwigRendererEngine;
-use Symfony\Bridge\Twig\Form\TwigRenderer;
-use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Finder\SplFileInfo;
-use Symfony\Component\Routing\RequestContext;
-use Symfony\Component\Routing\RouteCollection;
-use Symfony\Component\Routing\Generator\UrlGenerator;
-use Symfony\Bridge\Twig\Extension\RoutingExtension;
-use JMS\TranslationBundle\Twig\RemovingNodeVisitor;
-use JMS\TranslationBundle\Twig\DefaultApplyingNodeVisitor;
 use JMS\TranslationBundle\Exception\RuntimeException;
-use Symfony\Component\Translation\MessageSelector;
-use Symfony\Bridge\Twig\Extension\TranslationExtension as SymfonyTranslationExtension;
 use JMS\TranslationBundle\Model\Message;
 use JMS\TranslationBundle\Model\MessageCatalogue;
+use JMS\TranslationBundle\Translation\FileSourceFactory;
+use JMS\TranslationBundle\Twig\DefaultApplyingNodeVisitor;
+use JMS\TranslationBundle\Twig\RemovingNodeVisitor;
 use JMS\TranslationBundle\Twig\TranslationExtension;
+use Psr\Log\LoggerInterface;
 use Symfony\Bridge\Twig\Extension\FormExtension;
+use Symfony\Bridge\Twig\Extension\RoutingExtension;
+use Symfony\Bridge\Twig\Extension\TranslationExtension as SymfonyTranslationExtension;
+use Symfony\Bridge\Twig\Form\TwigRenderer;
+use Symfony\Bridge\Twig\Form\TwigRendererEngine;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Finder\SplFileInfo;
+use Symfony\Component\Routing\Generator\UrlGenerator;
+use Symfony\Component\Routing\RequestContext;
+use Symfony\Component\Routing\RouteCollection;
+use Symfony\Component\Translation\MessageSelector;
 use Zikula\Bundle\CoreBundle\Translation\ZikulaTwigFileExtractor;
 use Zikula\Bundle\CoreBundle\Twig\Extension\CoreExtension;
 use Zikula\Bundle\CoreBundle\Twig\Extension\GettextExtension;
@@ -97,7 +97,7 @@ class TwigFileExtractorTest extends KernelTestCase
     {
         $expected = new MessageCatalogue();
         $fileSourceFactory = $this->getFileSourceFactory();
-        $fixtureSplInfo = new \SplFileInfo('/' . __DIR__ . '/Fixture/delete.html.twig');  // extra slash in path is necessary :(
+        $fixtureSplInfo = new \SplFileInfo('/' . __DIR__ . '/Fixture/delete.html.twig'); // extra slash in path is necessary :(
 
         $message = new Message('Delete block position', 'zikula');
         $message->addSource($fileSourceFactory->create($fixtureSplInfo, 9));
@@ -114,9 +114,12 @@ class TwigFileExtractorTest extends KernelTestCase
         $this->assertEquals($expected, $this->extract('delete.html.twig'));
     }
 
+    /**
+     * @param string $file
+     */
     private function extract($file, ZikulaTwigFileExtractor $extractor = null)
     {
-        if (!is_file($file = __DIR__.'/Fixture/'.$file)) {
+        if (!is_file($file = __DIR__ . '/Fixture/' . $file)) {
             throw new RuntimeException(sprintf('The file "%s" does not exist.', $file));
         }
         $kernel = $this
@@ -125,7 +128,7 @@ class TwigFileExtractorTest extends KernelTestCase
             ->getMock();
         $kernel
             ->method('getBundle')
-            ->will($this->returnCallback(function ($bundleName) {
+            ->will($this->returnCallback(function($bundleName) {
                 $bundle = $this
                     ->getMockBuilder('Zikula\Core\AbstractBundle')
                     ->disableOriginalConstructor()

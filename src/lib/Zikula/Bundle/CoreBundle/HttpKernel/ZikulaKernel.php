@@ -12,16 +12,12 @@
 namespace Zikula\Bundle\CoreBundle\HttpKernel;
 
 use Composer\Autoload\ClassLoader;
-use Symfony\Component\Config\ConfigCache;
 use Symfony\Component\Debug\DebugClassLoader;
-use Symfony\Component\DependencyInjection\ContainerBuilder as SymfonyContainerBuilder;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpKernel\Bundle\BundleInterface;
 use Symfony\Component\HttpKernel\DependencyInjection\MergeExtensionConfigurationPass;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Yaml\Yaml;
-use Zikula\Bridge\DependencyInjection\ContainerBuilder;
-use Zikula\Bridge\DependencyInjection\PhpDumper;
 use Zikula\Core\AbstractBundle;
 use Zikula\Core\AbstractModule;
 use Zikula\ThemeModule\AbstractTheme;
@@ -40,7 +36,7 @@ define('ACCESS_ADMIN', 800);
 
 abstract class ZikulaKernel extends Kernel implements ZikulaHttpKernelInterface
 {
-    const VERSION = '2.0.0';
+    const VERSION = '2.0.7';
 
     const VERSION_SUB = 'Concerto';
 
@@ -50,6 +46,13 @@ abstract class ZikulaKernel extends Kernel implements ZikulaHttpKernelInterface
      * The parameter name identifying the currently installed version of the core.
      */
     const CORE_INSTALLED_VERSION_PARAM = 'core_installed_version';
+
+    /**
+     * The controller at the front of the application (the first file loaded as controlled by the server & .htaccess)
+     * @see src/.htaccess
+     * @see \Zikula\ThemeModule\EventListener\AddJSConfigListener::addJSConfig
+     */
+    const FRONT_CONTROLLER = 'index.php';
 
     /**
      * Public list of core modules and their bundle class.
@@ -305,6 +308,8 @@ abstract class ZikulaKernel extends Kernel implements ZikulaHttpKernelInterface
             $this->bundles[$name] = $bundle;
 
             if ($parentName = $bundle->getParent()) {
+                @trigger_error('Bundle inheritance is deprecated as of 3.4 and will be removed in 4.0.', E_USER_DEPRECATED);
+
                 if (isset($directChildren[$parentName])) {
                     throw new \LogicException(sprintf('Bundle "%s" is directly extended by two bundles "%s" and "%s".', $parentName, $name, $directChildren[$parentName]));
                 }
@@ -318,7 +323,7 @@ abstract class ZikulaKernel extends Kernel implements ZikulaHttpKernelInterface
         }
 
         // look for orphans
-        if (count($diff = array_values(array_diff(array_keys($directChildren), array_keys($this->bundles))))) {
+        if (!empty($directChildren) && count($diff = array_values(array_diff(array_keys($directChildren), array_keys($this->bundles))))) {
             throw new \LogicException(sprintf('Bundle "%s" extends bundle "%s", which is not registered.', $directChildren[$diff[0]], $diff[0]));
         }
 
@@ -360,79 +365,15 @@ abstract class ZikulaKernel extends Kernel implements ZikulaHttpKernelInterface
     }
 
     /**
-     * Dumps the service container to PHP code in the cache.
-     *
-     * @param ConfigCache      $cache     The config cache
-     * @param SymfonyContainerBuilder $container The service container
-     * @param string           $class     The name of the class to generate
-     * @param string           $baseClass The name of the container's base class
-     */
-    protected function dumpContainer(ConfigCache $cache, SymfonyContainerBuilder $container, $class, $baseClass)
-    {
-        // cache the container
-        $dumper = new PhpDumper($container);
-        $content = $dumper->dump(['class' => $class, 'base_class' => $baseClass]);
-        if (!$this->debug) {
-            $content = self::stripComments($content);
-        }
-
-        $cache->write($content, $container->getResources());
-    }
-
-    /**
-     * Gets the container's base class.
-     *
-     * All names except Container must be fully qualified.
-     *
-     * Allows container to build services after being dumped and frozen
-     *
-     * @return string
-     */
-    protected function getContainerBaseClass()
-    {
-        //return 'Symfony\Component\DependencyInjection\Container';
-        return 'Zikula\Bridge\DependencyInjection\ContainerBuilder';
-    }
-
-    /**
-     * Gets a new ContainerBuilder instance used to build the service container.
-     *
-     * @return ContainerBuilder
-     */
-    protected function getContainerBuilder()
-    {
-        return new ContainerBuilder(new ParameterBag($this->getKernelParameters()));
-    }
-
-    /**
-     * Gets the environment parameters.
-     *
-     * Only the parameters starting with "ZIKULA__" are considered.
-     *
-     * @return array An array of parameters
-     */
-    protected function getEnvParameters()
-    {
-        $parameters = parent::getEnvParameters();
-        foreach ($_SERVER as $key => $value) {
-            if (0 === strpos($key, 'ZIKULA__')) {
-                $parameters[strtolower(str_replace('__', '.', substr($key, 9)))] = $value;
-            }
-        }
-
-        return $parameters;
-    }
-
-    /**
      * Prepares the ContainerBuilder before it is compiled.
      *
-     * @param SymfonyContainerBuilder $container A ContainerBuilder instance
+     * @param ContainerBuilder $container A ContainerBuilder instance
      */
-    protected function prepareContainer(SymfonyContainerBuilder $container)
+    protected function prepareContainer(ContainerBuilder $container)
     {
         $extensions = [];
         foreach ($this->bundles as $bundle) {
-            if ($bundle instanceof AbstractBundle && $bundle->getState() != AbstractBundle::STATE_ACTIVE) {
+            if ($bundle instanceof AbstractBundle && AbstractBundle::STATE_ACTIVE != $bundle->getState()) {
                 continue;
             }
             if ($extension = $bundle->getContainerExtension()) {
@@ -444,11 +385,18 @@ abstract class ZikulaKernel extends Kernel implements ZikulaHttpKernelInterface
                 $container->addObjectResource($bundle);
             }
         }
+
         foreach ($this->bundles as $bundle) {
-            if ($bundle instanceof AbstractBundle && $bundle->getState() != AbstractBundle::STATE_ACTIVE) {
+            if ($bundle instanceof AbstractBundle && AbstractBundle::STATE_ACTIVE != $bundle->getState()) {
                 continue;
             }
             $bundle->build($container);
+        }
+
+        $this->build($container);
+
+        foreach ($container->getExtensions() as $extension) {
+            $extensions[] = $extension->getAlias();
         }
 
         // ensure these extensions are implicitly loaded
@@ -462,13 +410,13 @@ abstract class ZikulaKernel extends Kernel implements ZikulaHttpKernelInterface
      */
     public function locateResource($name, $dir = null, $first = true)
     {
-        $themeBundle = $this->container->get('zikula_core.common.theme_engine')->getTheme();
         $locations = parent::locateResource($name, $dir, false);
         if ($locations && (false !== strpos($locations[0], $dir))) {
             // if found in $dir (typically app/Resources) return it immediately.
             return $locations[0];
         }
 
+        $themeBundle = $this->container->get('zikula_core.common.theme_engine')->getTheme();
         // add theme path to template locator
         // this method functions if the controller uses `@Template` or `ZikulaSpecModule:Foo:index.html.twig` naming scheme
         // if `@ZikulaSpecModule/Foo/index.html.twig` (name-spaced) naming scheme is used

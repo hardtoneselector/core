@@ -11,7 +11,6 @@
 
 namespace Zikula\CategoriesModule\Container;
 
-use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\RouterInterface;
 use Zikula\Common\Translator\TranslatorInterface;
 use Zikula\Core\LinkContainer\LinkContainerInterface;
@@ -41,31 +40,23 @@ class LinkContainer implements LinkContainerInterface
     protected $variableApi;
 
     /**
-     * @var RequestStack
-     */
-    private $requestStack;
-
-    /**
      * LinkContainer constructor.
      *
      * @param TranslatorInterface $translator    TranslatorInterface service instance
      * @param RouterInterface     $router        RouterInterface service instance
      * @param PermissionApiInterface $permissionApi PermissionApi service instance
      * @param VariableApiInterface $variableApi   VariableApi service instance
-     * @param RequestStack        $requestStack  RequestStack service instance
      */
     public function __construct(
         TranslatorInterface $translator,
         RouterInterface $router,
         PermissionApiInterface $permissionApi,
-        VariableApiInterface $variableApi,
-        RequestStack $requestStack
+        VariableApiInterface $variableApi
     ) {
         $this->translator = $translator;
         $this->router = $router;
         $this->permissionApi = $permissionApi;
         $this->variableApi = $variableApi;
-        $this->requestStack = $requestStack;
     }
 
     /**
@@ -77,9 +68,8 @@ class LinkContainer implements LinkContainerInterface
      */
     public function getLinks($type = LinkContainerInterface::TYPE_ADMIN)
     {
-        $method = 'get' . ucfirst(strtolower($type));
-        if (method_exists($this, $method)) {
-            return $this->$method();
+        if (LinkContainerInterface::TYPE_ADMIN == $type) {
+            return $this->getAdmin();
         }
 
         return [];
@@ -106,32 +96,6 @@ class LinkContainer implements LinkContainerInterface
                 'url' => $this->router->generate('zikulacategoriesmodule_registry_edit'),
                 'text' => $this->translator->__('Category registry'),
                 'icon' => 'archive'
-            ];
-        }
-
-        return $links;
-    }
-
-    /**
-     * get the Account links for this extension
-     *
-     * @return array
-     */
-    private function getAccount()
-    {
-        $links = [];
-
-        if ($this->permissionApi->hasPermission($this->getBundleName() . '::', '::', ACCESS_EDIT) && $this->variableApi->get($this->getBundleName(), 'allowusercatedit', 0)) {
-            $request = $this->requestStack->getCurrentRequest();
-            $referer = $request->headers->get('referer');
-            if (false === strpos($referer, 'categories')) {
-                $request->getSession()->set('categories_referer', $referer);
-            }
-
-            $links[] = [
-                'url' => $this->router->generate('zikulacategoriesmodule_user_index'),
-                'text' => $this->translator->__('Categories manager'),
-                'icon' => 'server'
             ];
         }
 

@@ -43,23 +43,35 @@ class HookExtension extends \Twig_Extension
     public function getFilters()
     {
         return [
-            new \Twig_SimpleFilter('notifyFilters', [$this, 'notifyFilters'])
+            new \Twig_SimpleFilter('notifyFilters', [$this, 'notifyFilters'], ['is_safe' => ['html']])
         ];
     }
 
-    public function notifyDisplayHooks($eventName, $id = null, $urlObject = null)
+    /**
+     * @param $eventName
+     * @param integer $id The object id
+     * @param UrlInterface $urlObject
+     * @param bool $outputAsArray set to true to output results as array (requires additional handling in template)
+     *
+     * @return bool|string|array
+     */
+    public function notifyDisplayHooks($eventName, $id = null, $urlObject = null, $outputAsArray = false)
     {
-        if (!isset($eventName)) {
-            return trigger_error(__f('Error! "%1$s" must be set in %2$s', ['eventname', 'notifydisplayhooks']));
+        if (empty($eventName)) {
+            return trigger_error('Error! "eventname" must be set in notifydisplayhooks');
         }
         if ($urlObject && !($urlObject instanceof UrlInterface)) {
-            return trigger_error(__f('Error! "%1$s" must be an instance of %2$s', ['urlobject', '\Zikula\Core\UrlInterface']));
+            return trigger_error('Error! "urlobject" must be an instance of Zikula\Core\UrlInterface');
         }
 
         // create event and notify
         $hook = new DisplayHook($id, $urlObject);
         $this->hookDispatcher->dispatch($eventName, $hook);
         $responses = $hook->getResponses();
+
+        if ($outputAsArray) {
+            return $responses;
+        }
 
         $output = '';
         foreach ($responses as $result) {

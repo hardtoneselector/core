@@ -1,7 +1,7 @@
 {
     "name": "zikula/core",
     "homepage": "http://zikula.org/",
-    "license": "LGPL-3.0+",
+    "license": "LGPL-3.0-or-later",
     "description": "Zikula Application Framework",
     "minimum-stability": "dev",
     "prefer-stable": true,
@@ -18,7 +18,7 @@
         }
     ],
     "require": {
-        "wikimedia/composer-merge-plugin": "dev-master"
+        "wikimedia/composer-merge-plugin": "1.*"
     },
     "require-dev": {
         "phpunit/phpunit": "4.*"
@@ -63,9 +63,11 @@
             "src/themes/{$vendor}/{$name}": ["type:zikula-theme"]
         },
         "merge-plugin": {
-            "include": [
+            "require": [
                 "src/lib/Zikula/Bundle/*/composer.json",
-                "src/system/*/composer.json",
+                "src/system/*/composer.json"
+            ],
+            "include": [
                 "src/modules/*/composer.json",
                 "src/modules/*/*/composer.json",
                 "src/themes/*/composer.json",

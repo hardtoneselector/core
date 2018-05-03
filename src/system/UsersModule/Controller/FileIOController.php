@@ -28,9 +28,9 @@ class FileIOController extends AbstractController
     /**
      * @Route("/export")
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaUsersModule:FileIO:export.html.twig")
      * @param Request $request
-     * @return array
+     * @return array|StreamedResponse
      */
     public function exportAction(Request $request)
     {
@@ -46,7 +46,7 @@ class FileIOController extends AbstractController
             if ($form->get('download')->isClicked()) {
                 $data = $form->getData();
                 $response = new StreamedResponse();
-                $response->setCallback(function () use ($data) {
+                $response->setCallback(function() use ($data) {
                     $fields = ['uid', 'uname', 'activated', 'email', 'user_regdate', 'lastlogin', 'groups'];
                     foreach ($fields as $k => $field) {
                         if (isset($data[$field]) && !$data[$field]) {

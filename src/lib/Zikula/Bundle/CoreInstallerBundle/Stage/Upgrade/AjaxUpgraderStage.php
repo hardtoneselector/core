@@ -30,10 +30,7 @@ class AjaxUpgraderStage implements StageInterface, InjectContainerInterface
     public function __construct(ContainerInterface $container)
     {
         $this->setTranslator($container->get('translator.default'));
-        $this->oldVersion = $container->hasParameter(ZikulaKernel::CORE_INSTALLED_VERSION_PARAM)
-            ? $container->getParameter(ZikulaKernel::CORE_INSTALLED_VERSION_PARAM)
-            : '1.3.x'
-        ;
+        $this->oldVersion = $container->getParameter(ZikulaKernel::CORE_INSTALLED_VERSION_PARAM);
     }
 
     public function setTranslator($translator)
@@ -67,18 +64,18 @@ class AjaxUpgraderStage implements StageInterface, InjectContainerInterface
                 AjaxInstallerStage::FAIL => $this->__('There was an error logging in as admin')
             ],
             2 => [
+                AjaxInstallerStage::NAME => 'upgrade_event',
+                AjaxInstallerStage::PRE => $this->__('Fire upgrade event'),
+                AjaxInstallerStage::DURING => $this->__('Firing upgrade event'),
+                AjaxInstallerStage::SUCCESS => $this->__('Fired upgrade event'),
+                AjaxInstallerStage::FAIL => $this->__('There was an error firing the upgrade event')
+            ],
+            3 => [
                 AjaxInstallerStage::NAME => 'upgrademodules',
                 AjaxInstallerStage::PRE => $this->__('Upgrade modules'),
                 AjaxInstallerStage::DURING => $this->__('Upgrading modules'),
                 AjaxInstallerStage::SUCCESS => $this->__('Modules upgraded'),
                 AjaxInstallerStage::FAIL => $this->__('There was an error upgrading the modules')
-            ],
-            3 => [
-                AjaxInstallerStage::NAME => 'installroutes',
-                AjaxInstallerStage::PRE => $this->__('Install Zikula Routes Module'),
-                AjaxInstallerStage::DURING => $this->__('Installing Zikula Routes Module'),
-                AjaxInstallerStage::SUCCESS => $this->__('Zikula Routes Module installed'),
-                AjaxInstallerStage::FAIL => $this->__('There was an error installing Zikula Routes Module')
             ],
             4 => [
                 AjaxInstallerStage::NAME => 'regenthemes',

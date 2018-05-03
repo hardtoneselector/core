@@ -18,18 +18,22 @@ use Zikula\ThemeModule\Entity\ThemeEntity;
 class ThemeEntityRepository extends EntityRepository
 {
     const STATE_ALL = 0;
+
     const STATE_ACTIVE = 1;
+
     const STATE_INACTIVE = 2;
 
     const TYPE_ALL = 0;
+
     const TYPE_XANTHIA3 = 3;
 
     const FILTER_ALL = 0;
-    const FILTER_USER = 1;
-    const FILTER_SYSTEM = 2;
-    const FILTER_ADMIN = 3;
 
-    private $filteredGetCache;
+    const FILTER_USER = 1;
+
+    const FILTER_SYSTEM = 2;
+
+    const FILTER_ADMIN = 3;
 
     /**
      * @var ZikulaHttpKernelInterface
@@ -62,55 +66,48 @@ class ThemeEntityRepository extends EntityRepository
 
     public function get($filter = self::FILTER_ALL, $state = self::STATE_ACTIVE, $type = self::TYPE_ALL)
     {
-        $key = md5((string)$filter . (string)$state . (string)$type);
+        $qb = $this->getEntityManager()->createQueryBuilder()
+            ->select('t')
+            ->from('ZikulaThemeModule:ThemeEntity', 't');
 
-        if (empty($this->filteredGetCache[$key])) {
-            $qb = $this->getEntityManager()->createQueryBuilder()
-                ->select('t')
-                ->from('ZikulaThemeModule:ThemeEntity', 't');
-
-            if ($state != self::STATE_ALL) {
-                $qb->andWhere('t.state = :state')
-                    ->setParameter('state', $state);
-            }
-            if ($type != self::TYPE_ALL) {
-                $qb->andWhere('t.type = :type')
-                    ->setParameter('type', $type);
-            }
-            switch ($filter) {
-                case self::FILTER_USER:
-                    $qb->andWhere('t.user = 1');
-                    break;
-                case self::FILTER_SYSTEM:
-                    $qb->andWhere('t.system = 1');
-                    break;
-                case self::FILTER_ADMIN:
-                    $qb->andWhere('t.admin = 1');
-                    break;
-            }
-
-            $qb->orderBy('t.displayname', 'ASC');
-            $query = $qb->getQuery();
-
-            /** @var $result ThemeEntity[] */
-            $result = $query->getResult();
-            foreach ($result as $theme) {
-                $this->filteredGetCache[$key][$theme->getDirectory()] = $theme->toArray();
-                $kernel = $this->getKernel(); // allow to throw exception outside the try/catch block
-                try {
-                    $themeBundle = $kernel->getTheme($theme['name']);
-                } catch (\Exception $e) {
-                    $themeBundle = null;
-                }
-                $this->filteredGetCache[$key][$theme['directory']]['vars'] = isset($themeBundle) ? $themeBundle->getThemeVars() : false;
-            }
-
-            if (!$this->filteredGetCache[$key]) {
-                return false;
-            }
+        if (self::STATE_ALL != $state) {
+            $qb->andWhere('t.state = :state')
+                ->setParameter('state', $state);
+        }
+        if (self::TYPE_ALL != $type) {
+            $qb->andWhere('t.type = :type')
+                ->setParameter('type', $type);
+        }
+        switch ($filter) {
+            case self::FILTER_USER:
+                $qb->andWhere('t.user = 1');
+                break;
+            case self::FILTER_SYSTEM:
+                $qb->andWhere('t.system = 1');
+                break;
+            case self::FILTER_ADMIN:
+                $qb->andWhere('t.admin = 1');
+                break;
         }
 
-        return $this->filteredGetCache[$key];
+        $qb->orderBy('t.displayname', 'ASC');
+        $query = $qb->getQuery();
+
+        /** @var $result ThemeEntity[] */
+        $result = $query->getResult();
+        $themesArray = [];
+        foreach ($result as $theme) {
+            $themesArray[$theme->getName()] = $theme->toArray();
+            $kernel = $this->getKernel(); // allow to throw exception outside the try/catch block
+            try {
+                $themeBundle = $kernel->getTheme($theme['name']);
+            } catch (\Exception $e) {
+                $themeBundle = null;
+            }
+            $themesArray[$theme['name']]['vars'] = isset($themeBundle) ? $themeBundle->getThemeVars() : false;
+        }
+
+        return !empty($themesArray) ? $themesArray : false;
     }
 
     public function removeAndFlush($entity)

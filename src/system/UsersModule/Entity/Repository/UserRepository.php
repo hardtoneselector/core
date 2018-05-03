@@ -30,7 +30,7 @@ class UserRepository extends EntityRepository implements UserRepositoryInterface
             $uids = [$uids];
         }
 
-        return parent::findBy(['uid' => $uids]);
+        return $this->findBy(['uid' => $uids]);
     }
 
     public function persistAndFlush(UserEntity $user)
@@ -41,6 +41,16 @@ class UserRepository extends EntityRepository implements UserRepositoryInterface
 
     public function removeAndFlush(UserEntity $user)
     {
+        // the following process should be unnecessary because cascade = all but MySQL 5.7 not working with that (#3726)
+        $qb = $this->_em->createQueryBuilder();
+        $qb->delete('Zikula\UsersModule\Entity\UserAttributeEntity', 'a')
+           ->where('a.user = :userId')
+           ->setParameter('userId', $user->getUid());
+        $query = $qb->getQuery();
+        $query->execute();
+        // end of theoretically unrequired process
+
+        $user->setAttributes(new ArrayCollection());
         $this->_em->remove($user);
         $this->_em->flush($user);
     }
@@ -57,8 +67,7 @@ class UserRepository extends EntityRepository implements UserRepositoryInterface
     }
 
     /**
-     * @param array $formData
-     * @return Paginator
+     * {@inheritdoc}
      */
     public function queryBySearchForm(array $formData = [])
     {
@@ -111,16 +120,7 @@ class UserRepository extends EntityRepository implements UserRepositoryInterface
     }
 
     /**
-     * Fetch a collection of users. Optionally filter, sort, limit, offset results.
-     *   filter = [field => value, field => value, field => ['operator' => '!=', 'operand' => value], ...]
-     *   when value is not an array, operator is assumed to be '='
-     *
-     * @param array $filter
-     * @param array $sort
-     * @param int $limit
-     * @param int $offset
-     * @param string $exprType
-     * @return \Doctrine\ORM\Tools\Pagination\Paginator|UserEntity[]
+     * {@inheritdoc}
      */
     public function query(array $filter = [], array $sort = [], $limit = 0, $offset = 0, $exprType = 'and')
     {
@@ -153,8 +153,10 @@ class UserRepository extends EntityRepository implements UserRepositoryInterface
     {
         $qb = $this->createQueryBuilder('u')
             ->select('count(u.uid)');
-        $where = $this->whereFromFilter($qb, $filter, $exprType);
-        $qb->andWhere($where);
+        if (!empty($filter)) {
+            $where = $this->whereFromFilter($qb, $filter, $exprType);
+            $qb->andWhere($where);
+        }
         $query = $qb->getQuery();
 
         return $query->getSingleScalarResult();
@@ -177,13 +179,36 @@ class UserRepository extends EntityRepository implements UserRepositoryInterface
     }
 
     /**
-     * Return all users as memory-saving iterable result.
-     * @return \Doctrine\ORM\Internal\Hydration\IterableResult
+     * {@inheritdoc}
      */
     public function findAllAsIterable()
     {
         $qb = $this->createQueryBuilder('u');
 
         return $qb->getQuery()->iterate();
+    }
+
+    /**
+     * Searches for a user name excluding pending and deleted users.
+     *
+     * @param array $unameFilter
+     * @param int $limit
+     * @return UserEntity[]
+     */
+    public function searchActiveUser(array $unameFilter = [], $limit = 50)
+    {
+        if (!count($unameFilter)) {
+            return [];
+        }
+
+        $filter = [
+            'activated' => ['operator' => 'notIn', 'operand' => [
+                UsersConstant::ACTIVATED_PENDING_REG,
+                UsersConstant::ACTIVATED_PENDING_DELETE
+            ]],
+            'uname' => $unameFilter
+        ];
+
+        return $this->query($filter, ['uname' => 'asc'], $limit);
     }
 }

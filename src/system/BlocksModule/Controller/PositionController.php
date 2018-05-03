@@ -32,7 +32,7 @@ class PositionController extends AbstractController
      *
      * @Route("/edit/{positionEntity}", requirements={"positionEntity" = "^[1-9]\d*$"})
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaBlocksModule:Position:edit.html.twig")
      *
      * @param Request $request
      * @param BlockPositionEntity $positionEntity
@@ -76,7 +76,7 @@ class PositionController extends AbstractController
     /**
      * @Route("/delete/{pid}", requirements={"pid" = "^[1-9]\d*$"})
      * @Theme("admin")
-     * @Template
+     * @Template("ZikulaBlocksModule:Position:delete.html.twig")
      *
      * Delete a position.
      *
@@ -86,7 +86,7 @@ class PositionController extends AbstractController
      */
     public function deleteAction(Request $request, BlockPositionEntity $positionEntity)
     {
-        if (!$this->hasPermission('ZikulaBlocksModule::position', $positionEntity->getName() .'::'. $positionEntity->getPid(), ACCESS_DELETE)) {
+        if (!$this->hasPermission('ZikulaBlocksModule::position', $positionEntity->getName() . '::' . $positionEntity->getPid(), ACCESS_DELETE)) {
             throw new AccessDeniedException();
         }
 

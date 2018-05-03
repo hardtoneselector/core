@@ -12,6 +12,7 @@
 namespace Zikula\Bundle\CoreBundle\Bundle;
 
 use Doctrine\DBAL\Configuration;
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Zikula\Bundle\CoreBundle\HttpKernel\ZikulaKernel;
 use Zikula\Core\AbstractBundle;
@@ -25,7 +26,7 @@ class Bootstrap
      */
     private $extensionStateMap = [];
 
-    public function getConnection($kernel)
+    public function getConnection(ZikulaKernel $kernel)
     {
         // get bundles from persistence
         $connectionParams = $kernel->getConnectionConfig();
@@ -51,10 +52,10 @@ class Bootstrap
     {
         $conn = $this->getConnection($kernel);
         $conn->connect();
-        $res = $conn->executeQuery('SELECT bundlename, bundleclass, autoload, bundlestate, bundletype FROM bundles');
+        $res = $conn->executeQuery('SELECT bundleclass, autoload, bundlestate, bundletype FROM bundles');
         foreach ($res->fetchAll(\PDO::FETCH_NUM) as $row) {
-            list($name, $class, $autoload, $state, $type) = $row;
-            $extensionIsActive = $this->extensionIsActive($kernel, $conn, $class, $type);
+            list($class, $autoload, $state, $type) = $row;
+            $extensionIsActive = $this->extensionIsActive($conn, $class, $type);
             if ($extensionIsActive) {
                 try {
                     $autoload = unserialize($autoload);
@@ -73,8 +74,6 @@ class Bootstrap
                     }
                 } catch (\Exception $e) {
                     // unable to autoload $prefix / $path
-                    // todo - should we catch class not loadable here or not? If so how to handle it?
-                    // see https://github.com/zikula/core/issues/1424
                 }
             }
         }
@@ -84,13 +83,13 @@ class Bootstrap
     /**
      * determine if the extension is active
      *
-     * @param \Doctrine\DBAL\Connection $conn
+     * @param Connection $conn
      * @param string $class
      * @param string $type
      *
-     * @return bool
+     * @return boolean|null
      */
-    private function extensionIsActive(ZikulaKernel $kernel, $conn, $class, $type)
+    private function extensionIsActive(Connection $conn, $class, $type)
     {
         $extensionNameArray = explode('\\', $class);
         $extensionName = array_pop($extensionNameArray);
@@ -119,16 +118,16 @@ class Bootstrap
             if (isset($this->extensionStateMap[$extensionName])) {
                 $state = $this->extensionStateMap[$extensionName];
             } else {
-                $state = ['state' => ($type == 'T') ? ThemeEntityRepository::STATE_INACTIVE : Constant::STATE_UNINITIALISED];
+                $state = ['state' => ('T' == $type) ? ThemeEntityRepository::STATE_INACTIVE : Constant::STATE_UNINITIALISED];
             }
         }
 
         switch ($type) {
             case 'T':
-                return $state['state'] == ThemeEntityRepository::STATE_ACTIVE;
+                return ThemeEntityRepository::STATE_ACTIVE == $state['state'];
                 break;
             default:
-                if (($state['state'] == Constant::STATE_ACTIVE) || ($state['state'] == Constant::STATE_UPGRADED)) {
+                if ((Constant::STATE_ACTIVE == $state['state']) || (Constant::STATE_UPGRADED == $state['state']) || (Constant::STATE_TRANSITIONAL == $state['state'])) {
                     return true;
                 }
 
@@ -159,7 +158,7 @@ class Bootstrap
         }
         if (isset($autoload['files'])) {
             foreach ($autoload['files'] as $path) {
-                include $path;
+                \Composer\Autoload\includeFile($path);
             }
         }
     }

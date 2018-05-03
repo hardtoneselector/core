@@ -20,11 +20,14 @@ namespace Zikula\Component\SortableColumns;
 class Column
 {
     const DIRECTION_ASCENDING = 'ASC';
+
     const DIRECTION_DESCENDING = 'DESC';
 
-    const CSS_CLASS_UNSORTED = 'z-order-unsorted';
-    const CSS_CLASS_ASCENDING = 'z-order-asc';
-    const CSS_CLASS_DESCENDING = 'z-order-desc';
+    const CSS_CLASS_UNSORTED = 'unsorted';
+
+    const CSS_CLASS_ASCENDING = 'sorted-asc';
+
+    const CSS_CLASS_DESCENDING = 'sorted-desc';
 
     private $name;
 
@@ -140,7 +143,7 @@ class Column
     /**
      * @param boolean $isSortColumn
      */
-    public function setIsSortColumn($isSortColumn)
+    public function setSortColumn($isSortColumn)
     {
         $this->isSortColumn = $isSortColumn;
     }
@@ -152,7 +155,7 @@ class Column
      */
     private function reverse($direction)
     {
-        return ($direction == self::DIRECTION_ASCENDING) ? self::DIRECTION_DESCENDING : self::DIRECTION_ASCENDING;
+        return (self::DIRECTION_ASCENDING == $direction) ? self::DIRECTION_DESCENDING : self::DIRECTION_ASCENDING;
     }
 
     /**
@@ -162,6 +165,6 @@ class Column
      */
     private function cssFromDirection($direction)
     {
-        return ($direction == self::DIRECTION_ASCENDING) ? self::CSS_CLASS_ASCENDING : self::CSS_CLASS_DESCENDING;
+        return (self::DIRECTION_ASCENDING == $direction) ? self::CSS_CLASS_ASCENDING : self::CSS_CLASS_DESCENDING;
     }
 }

@@ -142,16 +142,17 @@ PageType
         }
     }
 
-###Required Options
+### Required Options
 
  - `module` - The Common (short) name for the providing module.
  - `entity` - The Common (short) name of the entity used in the Category Registry.
  - `entityCategoryClass` - The FqCN of the assignment entity for the category relation.
  - `em` - An instance of a Doctrine Object Manager.
 
-###Optional Options
+### Optional Options
 
  - `required` - (boolean) is the field required (default `true`).
  - `multiple` - (boolean) allow multiple selections (default `false`).
  - `direct` - (boolean) use only direct children or include all descendant generations (default `true`).
  - `attr` - (array) attributes array for each select box (default `[]`).
+ - `showRegistryLabels` - (boolean) set to `true` to show a label for each single selector based on the base category assigned in the corresponding registry (default `false`).

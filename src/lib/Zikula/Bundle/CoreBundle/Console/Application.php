@@ -29,17 +29,17 @@ class Application extends BaseApplication
      */
     public function __construct(ZikulaHttpKernelInterface $kernel)
     {
-        parent::__construct($kernel);
-
         $this->kernel = $kernel;
 
+        parent::__construct($kernel);
+
         $this->setName('Zikula');
-        $this->setVersion(ZikulaKernel::VERSION.' - '.$kernel->getName().'/'.$kernel->getEnvironment().($kernel->isDebug() ? '/debug' : ''));
+        $this->setVersion(ZikulaKernel::VERSION . ' - ' . $kernel->getName() . '/' . $kernel->getEnvironment() . ($kernel->isDebug() ? '/debug' : ''));
     }
 
     protected function registerCommands()
     {
-        if ($this->kernel->getContainer()->getParameter('installed') !== true) {
+        if (true !== $this->kernel->getContainer()->getParameter('installed')) {
             // composer is called, the system may not be installed yet
             return parent::registerCommands();
         }

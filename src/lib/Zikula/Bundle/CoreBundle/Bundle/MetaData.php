@@ -64,8 +64,6 @@ class MetaData implements \ArrayAccess
 
     private $extensionType;
 
-    private $directory;
-
     private $coreCompatibility;
 
     public function __construct($json)
@@ -87,8 +85,7 @@ class MetaData implements \ArrayAccess
         $this->capabilities = isset($json['extra']['zikula']['capabilities']) ? $json['extra']['zikula']['capabilities'] : [];
         $this->securitySchema = isset($json['extra']['zikula']['securityschema']) ? $json['extra']['zikula']['securityschema'] : [];
         $this->extensionType = isset($json['extensionType']) ? $json['extensionType'] : self::TYPE_MODULE;
-        $this->directory = $json['name'];
-        $this->coreCompatibility = isset($json['extra']['zikula']['core-compatibility']) ? $json['extra']['zikula']['core-compatibility'] : '>=1.4.0 <3.0.0'; // @todo >=1.4.1
+        $this->coreCompatibility = $json['extra']['zikula']['core-compatibility'];
     }
 
     public function getName()
@@ -181,11 +178,14 @@ class MetaData implements \ArrayAccess
 
     public function getUrl($translated = true)
     {
-        $this->confirmTranslator();
+        if ($translated) {
+            $this->confirmTranslator();
+            $url = $this->__(/** @Ignore */$this->url);
 
-        $url = $this->__(/** @Ignore */$this->url);
+            return empty($url) ? $this->url : $url;
+        }
 
-        return $translated ? ((empty($url)) ? $this->$url : $url) : $this->url;
+        return $this->url;
     }
 
     public function setUrl($url)
@@ -271,18 +271,6 @@ class MetaData implements \ArrayAccess
         }
     }
 
-    public function setDirectoryFromBundle(\Zikula\Core\AbstractBundle $bundle)
-    {
-        $parts = explode('/', $bundle->getRelativePath());
-        array_shift($parts);
-        $this->directory = implode('/', $parts);
-    }
-
-    public function getDirectory()
-    {
-        return $this->directory;
-    }
-
     /**
      * Theme MetaData as array
      *
@@ -295,16 +283,15 @@ class MetaData implements \ArrayAccess
         return [
             'name' => $this->getShortName(),
             'type' => $this->getExtensionType(),
-            'directory' => $this->getDirectory(),
             'displayname' => $this->getDisplayName(),
             'description' => $this->getDescription(),
             'version' => $this->getVersion(),
 //            'capabilities' => $this->getCapabilities(),
-            // @todo temp - add to DB and move to inverse in legacy code and refactor later checks
+            // It would be better to add capabilities to DB and move to inverse in legacy code and refactor later checks. refs #3644
             'user' => isset($capabilities['user']) ? $capabilities['user'] : true,
             'admin' => isset($capabilities['admin']) ? $capabilities['admin'] : true,
             'system' => isset($capabilities['system']) ? $capabilities['system'] : false,
-            'xhtml' => isset($capabilities['xhtml']) ? $capabilities['xhtml'] : true, // @todo is this valid any longer?
+            'xhtml' => isset($capabilities['xhtml']) ? $capabilities['xhtml'] : true, // this is not truly valid in 2.0
         ];
     }
 
@@ -318,7 +305,6 @@ class MetaData implements \ArrayAccess
         return [
             'name' => $this->getShortName(),
             'type' => $this->getExtensionType(),
-            'directory' => $this->getDirectory(),
             'displayname' => $this->getDisplayName(),
             'oldnames' => $this->getOldNames(),
             'description' => $this->getDescription(),

@@ -14,7 +14,9 @@ namespace Zikula\ExtensionsModule;
 use Zikula\Bundle\CoreBundle\Bundle\MetaData;
 use Zikula\Bundle\CoreBundle\Bundle\Scanner;
 use Zikula\Core\AbstractExtensionInstaller;
+use Zikula\ExtensionsModule\Entity\ExtensionDependencyEntity;
 use Zikula\ExtensionsModule\Entity\ExtensionEntity;
+use Zikula\ExtensionsModule\Entity\ExtensionVarEntity;
 
 /**
  * Installation and upgrade routines for the extensions module.
@@ -29,9 +31,9 @@ class ExtensionsModuleInstaller extends AbstractExtensionInstaller
     public function install()
     {
         $entities = [
-            'Zikula\ExtensionsModule\Entity\ExtensionEntity',
-            'Zikula\ExtensionsModule\Entity\ExtensionDependencyEntity',
-            'Zikula\ExtensionsModule\Entity\ExtensionVarEntity',
+            ExtensionEntity::class,
+            ExtensionDependencyEntity::class,
+            ExtensionVarEntity::class,
         ];
 
         try {
@@ -54,7 +56,7 @@ class ExtensionsModuleInstaller extends AbstractExtensionInstaller
      * This function must consider all the released versions of the module!
      * If the upgrade fails at some point, it returns the last upgraded version.
      *
-     * @param string $oldversion Version number string to upgrade from
+     * @param string $oldVersion Version number string to upgrade from
      *
      * @return  boolean|string True on success, last valid version string or false if fails
      */
@@ -72,15 +74,17 @@ class ExtensionsModuleInstaller extends AbstractExtensionInstaller
                 $commands[] = "ALTER TABLE `hook_runtime` CHANGE `method` `method` VARCHAR(60) NOT NULL";
 
                 foreach ($commands as $sql) {
-                    $stmt = $connection->executeQuery($sql);
+                    $connection->executeQuery($sql);
                 }
             case '3.7.11':
-                $this->schemaTool->update(['Zikula\ExtensionsModule\Entity\ExtensionEntity']);
+                $this->schemaTool->update([ExtensionEntity::class]);
             case '3.7.12':
                 $this->setVar('itemsperpage', 40);
             case '3.7.13':
-                $this->schemaTool->update(['Zikula\ExtensionsModule\Entity\ExtensionEntity']);
+                $this->schemaTool->update([ExtensionEntity::class]);
             case '3.7.14':
+                $this->schemaTool->update([ExtensionEntity::class]);
+            case '3.7.15':
                 // future upgrade routines
         }
 

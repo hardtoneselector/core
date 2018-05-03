@@ -149,10 +149,10 @@ abstract class AbstractBlockHandler implements BlockHandlerInterface, ContainerA
 
     /**
      * Convenience shortcut to check if user has requested permissions.
-     * @param null $component
-     * @param null $instance
-     * @param null $level
-     * @param null $user
+     * @param string $component
+     * @param string $instance
+     * @param integer $level
+     * @param integer $user
      * @return bool
      */
     protected function hasPermission($component = null, $instance = null, $level = null, $user = null)
@@ -161,12 +161,22 @@ abstract class AbstractBlockHandler implements BlockHandlerInterface, ContainerA
     }
 
     /**
-     * Shortcut method to fetch services from the the container.
+     * Shortcut method to fetch services from the container.
      * @param $serviceName
      * @return object
      */
     protected function get($serviceName)
     {
         return $this->container->get($serviceName);
+    }
+
+    /**
+     * Shortcut method to fetch parameters from the container.
+     * @param $name
+     * @return mixed
+     */
+    protected function getParameter($name)
+    {
+        return $this->container->getParameter($name);
     }
 }

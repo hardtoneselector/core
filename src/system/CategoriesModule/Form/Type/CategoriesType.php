@@ -15,6 +15,7 @@ use Doctrine\Common\Persistence\ObjectManager;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Zikula\CategoriesModule\Entity\AbstractCategoryAssignment;
 use Zikula\CategoriesModule\Entity\CategoryEntity;
@@ -35,13 +36,22 @@ class CategoriesType extends AbstractType
     private $categoryRegistryRepository;
 
     /**
+     * @var RequestStack
+     */
+    private $requestStack;
+
+    /**
      * CategoriesType constructor.
      *
      * @param CategoryRegistryRepositoryInterface $categoryRegistryRepository
+     * @param RequestStack $requestStack
      */
-    public function __construct(CategoryRegistryRepositoryInterface $categoryRegistryRepository)
-    {
+    public function __construct(
+        CategoryRegistryRepositoryInterface $categoryRegistryRepository,
+        RequestStack $requestStack
+    ) {
         $this->categoryRegistryRepository = $categoryRegistryRepository;
+        $this->requestStack = $requestStack;
     }
 
     /**
@@ -54,28 +64,40 @@ class CategoriesType extends AbstractType
             'entityname' => $options['entity']
         ]);
 
+        $locale = $this->requestStack->getMasterRequest()->getLocale();
+
         /** @var CategoryRegistryEntity[] $registries */
         foreach ($registries as $registry) {
-            $queryBuilderClosure = function (CategoryRepositoryInterface $repo) use ($registry, $options) {
-                return $repo->getChildrenQueryBuilder($registry->getCategory(), $options['direct']);
+            $baseCategory = $registry->getCategory();
+            $queryBuilderClosure = function(CategoryRepositoryInterface $repo) use ($baseCategory, $options) {
+                return $repo->getChildrenQueryBuilder($baseCategory, $options['direct']);
             };
-            $choiceLabelClosure = function (CategoryEntity $category) use ($registry) {
-                $indent = str_repeat('--', $category->getLvl() - $registry->getCategory()->getLvl() - 1);
+            $choiceLabelClosure = function(CategoryEntity $category) use ($baseCategory, $locale) {
+                $indent = str_repeat('--', $category->getLvl() - $baseCategory->getLvl() - 1);
 
-                return (!empty($indent) ? '|' : '') . $indent . $category->getName();
+                $categoryName = isset($category['display_name'][$locale]) ? $category['display_name'][$locale] : $category['display_name']['en'];
+
+                return (!empty($indent) ? '|' : '') . $indent . $categoryName;
             };
-            $builder->add('registry_' . $registry->getId(), EntityType::class,
-                [
-                    'em' => $options['em'],
-                    'label_attr' => !$options['expanded'] ? ['class' => 'hidden'] : [],
-                    'attr' => $options['attr'],
-                    'required' => $options['required'],
-                    'multiple' => $options['multiple'],
-                    'expanded' => $options['expanded'],
-                    'class' => CategoryEntity::class,
-                    'choice_label' => $choiceLabelClosure,
-                    'query_builder' => $queryBuilderClosure
-                ]);
+
+            $registryOptions = [
+                'em' => $options['em'],
+                'attr' => $options['attr'],
+                'required' => $options['required'],
+                'multiple' => $options['multiple'],
+                'expanded' => $options['expanded'],
+                'class' => CategoryEntity::class,
+                'choice_label' => $choiceLabelClosure,
+                'query_builder' => $queryBuilderClosure
+            ];
+
+            if ($options['showRegistryLabels']) {
+                $registryOptions['label'] = isset($baseCategory['display_name'][$locale]) ? $baseCategory['display_name'][$locale] : $baseCategory['display_name']['en'];
+            } else {
+                $registryOptions['label_attr'] = !$options['expanded'] ? ['class' => 'hidden'] : [];
+            }
+
+            $builder->add('registry_' . $registry->getId(), EntityType::class, $registryOptions);
         }
 
         $builder->addViewTransformer(new CategoriesCollectionTransformer($options), true);
@@ -106,7 +128,8 @@ class CategoriesType extends AbstractType
             'entity' => '',
             'entityCategoryClass' => '',
             'em' => null,
-            'required' => false
+            'required' => false,
+            'showRegistryLabels' => false
         ]);
         $resolver->setAllowedTypes('attr', 'array');
         $resolver->setAllowedTypes('multiple', 'bool');
@@ -117,8 +140,9 @@ class CategoriesType extends AbstractType
         $resolver->setAllowedTypes('entity', 'string');
         $resolver->setAllowedTypes('entityCategoryClass', 'string');
         $resolver->setAllowedTypes('em', [ObjectManager::class, 'null']);
+        $resolver->setAllowedTypes('showRegistryLabels', 'bool');
 
-        $resolver->addAllowedValues('entityCategoryClass', function ($value) {
+        $resolver->addAllowedValues('entityCategoryClass', function($value) {
             return is_subclass_of($value, AbstractCategoryAssignment::class);
         });
     }

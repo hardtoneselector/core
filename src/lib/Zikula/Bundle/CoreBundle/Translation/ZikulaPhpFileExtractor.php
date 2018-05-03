@@ -22,11 +22,11 @@ use JMS\TranslationBundle\Model\Message;
 use JMS\TranslationBundle\Model\MessageCatalogue;
 use JMS\TranslationBundle\Translation\Extractor\FileVisitorInterface;
 use PhpParser\Node;
-use PhpParser\Node\Stmt\Namespace_;
-use PhpParser\Node\Expr\MethodCall;
-use PhpParser\Node\Scalar\String_;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Scalar\String_;
+use PhpParser\Node\Stmt\Namespace_;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpKernel\Bundle\BundleInterface;
 use Zikula\Bundle\CoreBundle\HttpKernel\ZikulaHttpKernelInterface;
@@ -265,7 +265,7 @@ class ZikulaPhpFileExtractor implements LoggerAwareInterface, FileVisitorInterfa
         // /** @Desc("FOO") */ $translator->trans('my.id')
         if (null !== $comment = $node->getDocComment()) {
             return $comment->getText();
-        } elseif (null !== $this->previousNode && $this->previousNode->getDocComment() !== null) {
+        } elseif (null !== $this->previousNode && null !== $this->previousNode->getDocComment()) {
             $comment = $this->previousNode->getDocComment();
 
             return is_object($comment) ? $comment->getText() : $comment;

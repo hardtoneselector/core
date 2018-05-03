@@ -12,8 +12,8 @@
 namespace Zikula\Bridge\HttpFoundation;
 
 use Symfony\Component\HttpFoundation\Session\Storage\Handler\NativeSessionHandler;
-use Symfony\Component\HttpFoundation\Session\Storage\NativeSessionStorage;
 use Symfony\Component\HttpFoundation\Session\Storage\MetadataBag;
+use Symfony\Component\HttpFoundation\Session\Storage\NativeSessionStorage;
 use Symfony\Component\HttpFoundation\Session\Storage\Proxy\AbstractProxy;
 use Zikula\ExtensionsModule\Api\ApiInterface\VariableApiInterface;
 use Zikula\UsersModule\Constant;
@@ -90,13 +90,14 @@ class ZikulaSessionStorage extends NativeSessionStorage
             $cookieLastUsed = $this->getMetadataBag()->getLastUsed();
             $cookieExpired = $cookieLastUsed < $inactiveTime;
             $cookieAgedOut = $cookieLastUsed < $daysOldTime;
-            $rememberMe = $this->getBag('attributes')->get('rememberme');
-            $uid = $this->getBag('attributes')->get('uid', Constant::USER_ID_ANONYMOUS);
+            $attributesBag = $this->getBag('attributes')->getBag();
+            $rememberMe = $attributesBag->get('rememberme');
+            $uid = $attributesBag->get('uid', Constant::USER_ID_ANONYMOUS);
             switch ($this->securityLevel) {
                 case self::SECURITY_LEVEL_LOW:
                     break;
                 case self::SECURITY_LEVEL_MEDIUM:
-                    if ((!$rememberMe && $cookieExpired) || ($cookieAgedOut) || ($uid == Constant::USER_ID_ANONYMOUS && $cookieExpired)) {
+                    if ((!$rememberMe && $cookieExpired) || ($cookieAgedOut) || (Constant::USER_ID_ANONYMOUS == $uid && $cookieExpired)) {
                         parent::regenerate(true, 2 * 365 * 24 * 60 * 60); // two years
                     }
                     break;

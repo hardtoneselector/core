@@ -35,7 +35,7 @@ class DbCredsStage implements StageInterface, FormHandlerInterface, InjectContai
     public function __construct(ContainerInterface $container)
     {
         $this->container = $container;
-        $this->yamlManager = new YamlDumper($this->container->get('kernel')->getRootDir() .'/config', 'custom_parameters.yml');
+        $this->yamlManager = new YamlDumper($this->container->get('kernel')->getRootDir() . '/config', 'custom_parameters.yml');
     }
 
     public function getName()
@@ -66,7 +66,7 @@ class DbCredsStage implements StageInterface, FormHandlerInterface, InjectContai
         if (!empty($params['database_host']) && !empty($params['database_user']) && !empty($params['database_name'])) {
             // test the connection here.
             $test = $this->testDBConnection($params);
-            if ($test !== true) {
+            if (true !== $test) {
                 throw new AbortStageException($test);
             }
 
@@ -96,7 +96,7 @@ class DbCredsStage implements StageInterface, FormHandlerInterface, InjectContai
         try {
             $this->yamlManager->setParameters($params);
         } catch (IOException $e) {
-            throw new AbortStageException(__f('Cannot write parameters to %s file.', 'custom_parameters.yml'));
+            throw new AbortStageException(sprintf('Cannot write parameters to %s file.', 'custom_parameters.yml'));
         }
         // clear the cache
         $this->container->get('zikula.cache_clearer')->clear('symfony.config');
@@ -106,7 +106,7 @@ class DbCredsStage implements StageInterface, FormHandlerInterface, InjectContai
     {
         $params['database_driver'] = substr($params['database_driver'], 4);
         try {
-            $dbh = new \PDO("$params[database_driver]:host=$params[database_host];dbname=$params[database_name]", $params['database_user'], $params['database_password']);
+            new \PDO("$params[database_driver]:host=$params[database_host];dbname=$params[database_name]", $params['database_user'], $params['database_password']);
         } catch (\PDOException $e) {
             return $e->getMessage();
         }

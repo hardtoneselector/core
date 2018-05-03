@@ -11,10 +11,10 @@
 
 namespace Zikula\CategoriesModule\Entity;
 
-use Zikula\Core\Doctrine\EntityAccess;
-use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
+use Zikula\Core\Doctrine\EntityAccess;
 
 /**
  * Category entity.
@@ -385,15 +385,29 @@ class CategoryEntity extends EntityAccess
      * get the category display name
      * @param $lang
      *
-     * @return array the category display name
+     * @return array|string the category display name(s)
      */
     public function getDisplay_name($lang = null)
     {
         if (!empty($lang)) {
-            return $this->display_name[$lang];
+            if (isset($this->display_desc[$lang])) {
+                return $this->display_name[$lang];
+            } elseif (isset($this->display_name['en'])) {
+                return $this->display_name['en'];
+            } else {
+                return $this->name;
+            }
         }
 
         return $this->display_name;
+    }
+
+    /**
+     * Alias to self::getDisplay_name() required for Twig property access
+     */
+    public function getDisplayName()
+    {
+        return $this->getDisplay_name();
     }
 
     /**
@@ -404,6 +418,16 @@ class CategoryEntity extends EntityAccess
     public function setDisplay_name($display_name)
     {
         $this->display_name = $display_name;
+    }
+
+    /**
+     * Alias to self::setDisplay_name() required for PropertyAccess of collection form type
+     *
+     * @param array $display_name the category display name array
+     */
+    public function setDisplayName($display_name)
+    {
+        $this->setDisplay_name($display_name);
     }
 
     /**
@@ -422,6 +446,14 @@ class CategoryEntity extends EntityAccess
     }
 
     /**
+     * Alias to self::getDisplay_desc() required for Twig property access
+     */
+    public function getDisplayDesc($lang = null)
+    {
+        return $this->getDisplay_desc($lang);
+    }
+
+    /**
      * set the category display description
      *
      * @param array $display_desc the category display description
@@ -432,13 +464,23 @@ class CategoryEntity extends EntityAccess
     }
 
     /**
+     * Alias to self::setDisplay_desc() required for PropertyAccess of collection form type
+     *
+     * @param array $display_desc the category display description
+     */
+    public function setDisplayDesc($display_desc)
+    {
+        $this->setDisplay_desc($display_desc);
+    }
+
+    /**
      * get the category status
      *
      * @return bool the category status
      */
     public function getStatus()
     {
-        return $this->status == 'A';
+        return 'A' == $this->status;
     }
 
     /**
